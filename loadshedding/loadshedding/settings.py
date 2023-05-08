@@ -36,6 +36,7 @@ ALLOWED_HOSTS = []
 
 INSTALLED_APPS = [
     'loadshedding_calc',
+    #"loadshedding_calc.apps.Loadshedding_calcConfig",
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
