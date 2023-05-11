@@ -6,7 +6,8 @@ from django.utils import timezone
 from django.template import loader
 from django.db.models import Q
 
-from .models import CapeTownSlots
+from .models import CapeTownSlots, TimeSlot
+from .forms import DaySlotsForm
 
 def detail(request, slot_id):
     return HttpResponse("You're looking at %s." % slot_id)
@@ -17,8 +18,39 @@ def index(request):
     context = {"day_slots": day_slots}
     return render(request, "loadshedding_calc/index.html", context)
 
-#def selection(request):
+def dayslots(request):
+    selec = request.session.get('c_area')
+    day_slots = CapeTownSlots.objects.filter(Q(day=1) &  Q(stage1 = selec))
+    context = {"day_slots": day_slots}
+    return render(request, "loadshedding_calc/day.html", context)
 
+
+def selection(request):
+    
+    if request.method == 'POST':
+
+        form = DaySlotsForm(request.POST)
+
+        if form.is_valid():
+            # process the data in form.cleaned_data as required (here we just write it to the model due_back field)
+            #book_instance.due_back = form.cleaned_data['renewal_date']
+            #book_instance.save()
+            area = form.cleaned_data['selected_area']
+            request.session['c_area'] = area
+
+            return HttpResponseRedirect(reverse('day-slots'))
+
+    else:
+        #proposed_renewal_date = datetime.date.today() + datetime.timedelta(weeks=3)
+        #form = RenewBookForm(initial={'renewal_date': proposed_renewal_date})
+        form = DaySlotsForm(request.POST)
+
+    context = {
+        'form': form,
+        #'book_instance': book_instance,
+    }
+
+    return render(request, 'loadshedding_calc/selection.html', context)
 
 #class IndexView(generic.ListView):
 #    template_name = "loadshedding_clac/index.html"

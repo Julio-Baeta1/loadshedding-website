@@ -1,0 +1,9 @@
+{% if day_slots %}
+    <ul>
+    {% for slot in day_slots %}
+        <li>{{ slot.start_time }} - {{ slot.end_time }}</li>
+    {% endfor %}
+    </ul>
+{% else %}
+    <p>No loadshedding.</p>
+{% endif %}

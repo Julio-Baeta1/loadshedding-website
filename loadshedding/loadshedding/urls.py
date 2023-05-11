@@ -16,9 +16,11 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path,include
+from django.views.generic import RedirectView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('', RedirectView.as_view(url='loadshedding_calc/', permanent=True)), #makes loadshedding/loadshedding_calc home page instead of loadshedding/
     path("loadshedding_calc/",include("loadshedding_calc.urls")),
 ]
 

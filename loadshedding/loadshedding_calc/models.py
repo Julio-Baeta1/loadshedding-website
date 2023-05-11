@@ -25,3 +25,7 @@ class CapeTownSlots(models.Model):
 
     def __str__(self):
         return str(self.day)+" = "+self.start_time.strftime('%H:%M')+"-"+self.end_time.strftime('%H:%M')
+    
+    def is_stage(self,stage_val):
+        """Returns 1 if contains stage in lower number """
+        return True
