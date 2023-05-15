@@ -5,6 +5,7 @@ from django.views import generic
 from django.utils import timezone
 from django.template import loader
 from django.db.models import Q
+#from psycopg2.extensions import AsIs
 
 from .models import CapeTownSlots, TimeSlot
 from .forms import DaySlotsForm
@@ -19,8 +20,12 @@ def index(request):
     return render(request, "loadshedding_calc/index.html", context)
 
 def dayslots(request):
-    selec = request.session.get('c_area')
-    day_slots = CapeTownSlots.objects.filter(Q(day=1) &  Q(stage1 = selec))
+    s_day = request.session.get('c_day')
+    s_area = request.session.get('c_area')
+    s_stage = request.session.get('c_stage')
+
+    slots_query = Q(day=s_day) &  Q(stage1 = s_area)
+    day_slots = CapeTownSlots.objects.filter(slots_query)
     context = {"day_slots": day_slots}
     return render(request, "loadshedding_calc/day.html", context)
 
@@ -35,8 +40,13 @@ def selection(request):
             # process the data in form.cleaned_data as required (here we just write it to the model due_back field)
             #book_instance.due_back = form.cleaned_data['renewal_date']
             #book_instance.save()
+            day = form.cleaned_data['selected_day']
             area = form.cleaned_data['selected_area']
+            stage = form.cleaned_data['selected_stage']
+            #print(area)
+            request.session['c_day'] = day
             request.session['c_area'] = area
+            request.session['c_stage'] = stage
 
             return HttpResponseRedirect(reverse('day-slots'))
 
