@@ -5,10 +5,36 @@ from django.views import generic
 from django.utils import timezone
 from django.template import loader
 from django.db.models import Q
-#from psycopg2.extensions import AsIs
 
 from .models import CapeTownSlots, TimeSlot
 from .forms import DaySlotsForm
+
+def stageQuery(stage,area_code):
+
+    if stage <1 or stage > 8:
+        return 
+
+    stage_query = Q(stage1 = area_code)
+
+    if stage > 1:
+        stage_query |= Q(stage2 =area_code)
+    if stage > 2:
+        stage_query |= Q(stage3 =area_code)
+    if stage > 3:
+        stage_query |= Q(stage4 =area_code)
+    if stage > 4:
+        stage_query |= Q(stage5 =area_code)
+    if stage > 5:
+        stage_query |= Q(stage6 =area_code)
+    if stage > 6:
+        stage_query |= Q(stage7 =area_code)
+    if stage > 7:
+        stage_query |= Q(stage8 =area_code)
+
+    if stage > 1:
+        stage_query = Q(stage_query)
+
+    return stage_query
 
 def detail(request, slot_id):
     return HttpResponse("You're looking at %s." % slot_id)
@@ -24,7 +50,7 @@ def dayslots(request):
     s_area = request.session.get('c_area')
     s_stage = request.session.get('c_stage')
 
-    slots_query = Q(day=s_day) &  Q(stage1 = s_area)
+    slots_query = Q(day=s_day) &  stageQuery(s_stage,s_area)
     day_slots = CapeTownSlots.objects.filter(slots_query)
     context = {"day_slots": day_slots}
     return render(request, "loadshedding_calc/day.html", context)
