@@ -1,9 +1,14 @@
+{% extends "base_generic.html" %}
+
+{% block content %}
 {% if day_slots %}
+    <h1>Loadshedding slots for {{day}}</h1>
     <ul>
     {% for slot in day_slots %}
         <li>{{ slot.start_time }} - {{ slot.end_time }}</li>
     {% endfor %}
     </ul>
 {% else %}
-    <p>No loadshedding.</p>
+    <h1>No loadshedding.</h1>
 {% endif %}
+{% endblock %}

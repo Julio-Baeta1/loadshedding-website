@@ -1,9 +1,9 @@
-{% if day_slots %}
-    <ul>
-    {% for slot in day_slots %}
-        <li>{{ slot.start_time }} , {{ slot.end_time }}</li>
-    {% endfor %}
-    </ul>
-{% else %}
-    <p>No loadshedding.</p>
-{% endif %}
+{% extends "base_generic.html" %}
+
+{% block content %}
+  <h1>Loadshedding Cost Calculator Home</h1>
+  <p>Welcome to the loadshedding calculator</p>
+  <p>This is a simple web app that will allow you to calculate very roughly how much loadshedding costs you</p>
+{% endblock %}
+
+

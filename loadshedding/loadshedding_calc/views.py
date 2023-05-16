@@ -36,10 +36,6 @@ def stageQuery(stage,area_code):
 
     return stage_query
 
-def detail(request, slot_id):
-    return HttpResponse("You're looking at %s." % slot_id)
-
-
 def index(request):
     day_slots = CapeTownSlots.objects.filter(Q(day=1) &  Q(Q(stage1=1) | Q(stage2=1)))
     context = {"day_slots": day_slots}
@@ -52,7 +48,9 @@ def dayslots(request):
 
     slots_query = Q(day=s_day) &  stageQuery(s_stage,s_area)
     day_slots = CapeTownSlots.objects.filter(slots_query)
-    context = {"day_slots": day_slots}
+    context = {"day_slots": day_slots,
+               "day": s_day
+               }
     return render(request, "loadshedding_calc/day.html", context)
 
 

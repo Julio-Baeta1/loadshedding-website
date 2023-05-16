@@ -1,9 +1,15 @@
-<h1>Form Test</h1>
+{% extends "base_generic.html" %}
 
-<form action="" method="post">
-  {% csrf_token %}
-  <table>
-  {{ form.as_table }}
-  </table>
-  <input type="submit" value="Submit">
-</form>
+{% block content %}
+  <h1>Single day loadshedding slot allocation</h1>
+  <p>Enter the relevent fields to obtain the loadshedding slots for a given day</p>
+
+  <form action="" method="post">
+    {% csrf_token %}
+    <table>
+    {{ form.as_table }}
+    </table>
+    <input type="submit" value="Submit">
+  </form>
+
+{% endblock %}
