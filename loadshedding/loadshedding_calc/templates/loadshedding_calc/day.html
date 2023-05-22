@@ -2,10 +2,10 @@
 
 {% block content %}
 {% if day_slots %}
-    <h1>Loadshedding slots for {{day}}</h1>
+    <h1>Loadshedding slots for {{date}}</h1>
     <ul>
     {% for slot in day_slots %}
-        <li>{{ slot.start_time }} - {{ slot.end_time }}</li>
+        <li>{{ slot.start_time|time:"H:i" }} - {{ slot.end_time|time:"H:i" }}</li>
     {% endfor %}
     </ul>
 {% else %}

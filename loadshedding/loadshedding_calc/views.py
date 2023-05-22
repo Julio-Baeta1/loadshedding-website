@@ -1,3 +1,6 @@
+import datetime
+import json
+
 from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404, render
 from django.urls import reverse
@@ -10,6 +13,8 @@ from .models import CapeTownSlots, TimeSlot
 from .forms import DaySlotsForm
 
 def stageQuery(stage,area_code):
+    """Function to create DB query for stages 1-8 of loadshedding i.e. for stage 6 load-shedding will occur if area code appears as 
+    the field value for column stage6 all the way down to column stage1"""
 
     if stage <1 or stage > 8:
         return 
@@ -37,63 +42,52 @@ def stageQuery(stage,area_code):
     return stage_query
 
 def index(request):
-    day_slots = CapeTownSlots.objects.filter(Q(day=1) &  Q(Q(stage1=1) | Q(stage2=1)))
-    context = {"day_slots": day_slots}
-    return render(request, "loadshedding_calc/index.html", context)
+    """View function for home page of site."""
+    return render(request, 'index.html')
 
 def dayslots(request):
-    s_day = request.session.get('c_day')
+    """Displays load-shedding time slots for a given area based on date and load-shedding stage
+        Currently uses cookies but might expand to be user specific"""
+    
+    s_day = request.session.get('c_day') #Easier to pass day as int instead of extracting from date string
     s_area = request.session.get('c_area')
     s_stage = request.session.get('c_stage')
+    s_date = request.session.get('c_date')
 
     slots_query = Q(day=s_day) &  stageQuery(s_stage,s_area)
     day_slots = CapeTownSlots.objects.filter(slots_query)
     context = {"day_slots": day_slots,
-               "day": s_day
+               "date": s_date
                }
     return render(request, "loadshedding_calc/day.html", context)
 
 
 def selection(request):
+    """Simple form to enter relevent details to get load-shedding schedule for a particular day, area and load-shedding stage.
+        Uses POST for django builtin security"""
     
     if request.method == 'POST':
 
         form = DaySlotsForm(request.POST)
 
         if form.is_valid():
-            # process the data in form.cleaned_data as required (here we just write it to the model due_back field)
-            #book_instance.due_back = form.cleaned_data['renewal_date']
-            #book_instance.save()
-            day = form.cleaned_data['selected_day']
+            date = form.cleaned_data['selected_date']
             area = form.cleaned_data['selected_area']
             stage = form.cleaned_data['selected_stage']
-            #print(area)
-            request.session['c_day'] = day
+            
+            request.session['c_day'] = date.day
+            request.session['c_date'] = date.strftime("%A %d %B %Y")
             request.session['c_area'] = area
             request.session['c_stage'] = stage
 
             return HttpResponseRedirect(reverse('day-slots'))
 
     else:
-        #proposed_renewal_date = datetime.date.today() + datetime.timedelta(weeks=3)
-        #form = RenewBookForm(initial={'renewal_date': proposed_renewal_date})
         form = DaySlotsForm(request.POST)
 
     context = {
         'form': form,
-        #'book_instance': book_instance,
     }
 
     return render(request, 'loadshedding_calc/selection.html', context)
-
-#class IndexView(generic.ListView):
-#    template_name = "loadshedding_clac/index.html"
-#    context_object_name = "area_code_list"
-
-#    def get_queryset(self):
-#        return CapeTownSlots.objects.filter(day=5)
-#        #return Question.objects.filter(pub_date__lte=timezone.now()).order_by("-pub_date")[:5]
-
-#class ResultsView(generic.DetailView):
-#    model = CapeTownSlots
-#    template_name = "loads/results.html"    
+  
