@@ -1,4 +1,13 @@
 from django.db import models
+from django.contrib.auth.models import User
+
+class CapeTownAreas(models.Model):
+    ct_area_id = models.AutoField(primary_key=True)
+    area_name = models.CharField(max_length=80)
+    area_code = models.SmallIntegerField()
+
+    def __str__(self):
+        return self.area_name + " is in area code: " + str(self.area_code)
 
 class TimeSlot(models.Model):
     day = models.IntegerField()
