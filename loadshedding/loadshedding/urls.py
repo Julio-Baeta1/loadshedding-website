@@ -22,6 +22,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('', RedirectView.as_view(url='loadshedding_calc/', permanent=True)), #makes loadshedding/loadshedding_calc home page instead of loadshedding/
     path("loadshedding_calc/",include("loadshedding_calc.urls")),
+    path('accounts/', include('django.contrib.auth.urls')),
 ]
 
 
