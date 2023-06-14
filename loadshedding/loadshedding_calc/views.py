@@ -9,7 +9,7 @@ from django.utils import timezone
 from django.template import loader
 from django.db.models import Q
 
-from .models import CapeTownSlots, TimeSlot
+from .models import CapeTownSlots
 from .forms import DaySlotsForm
 
 def stageQuery(stage,area_code):

@@ -1,5 +1,8 @@
 from django.db import models
 from django.contrib.auth.models import User
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+import datetime
 
 class CapeTownAreas(models.Model):
     ct_area_id = models.AutoField(primary_key=True)
@@ -8,11 +11,30 @@ class CapeTownAreas(models.Model):
 
     def __str__(self):
         return self.area_name + " is in area code: " + str(self.area_code)
+    
+class Profile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    user_area = models.ForeignKey(CapeTownAreas, default=0, on_delete=models.PROTECT)
+    user_hour_cost = models.FloatField(null=True)
+    user_time_start = models.TimeField(default=datetime.time(00, 00))
+    user_time_end = models.TimeField(default=datetime.time(23, 59))
 
-class TimeSlot(models.Model):
-    day = models.IntegerField()
-    area_code = models.IntegerField()
-    time_slots = models.CharField(max_length=80)
+    @receiver(post_save, sender=User)
+    def create_user_profile(sender, instance, created, **kwargs):
+        if created:
+            Profile.objects.create(user=instance)
+
+    @receiver(post_save, sender=User)
+    def save_user_profile(sender, instance, **kwargs):
+        instance.profile.save()
+
+    def __str__(self):
+        return self.user.username + " is in area code " + str(self.user_area.area_code) + " and has an hourly cost of R" + str(self.user_hour_cost) + " from " + self.user_time_start.strftime('%H:%M')+" to "+self.user_time_end.strftime('%H:%M')
+
+#class TimeSlotsDay(models.Model):
+#    user = models.ForeignKey(UserProfile, on_delete=models.CASCADE)
+#    date = models.IntegerField()
+#    time_slots = models.CharField(max_length=80)
 
 class CapeTownSlots(models.Model):
     slot_id = models.AutoField(primary_key=True)
