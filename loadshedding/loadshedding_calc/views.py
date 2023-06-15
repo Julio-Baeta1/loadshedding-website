@@ -3,13 +3,15 @@ import json
 
 from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404, render
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.decorators import login_required
 from django.urls import reverse
 from django.views import generic
 from django.utils import timezone
 from django.template import loader
 from django.db.models import Q
 
-from .models import CapeTownSlots
+from .models import CapeTownSlots, CapeTownAreas, Profile
 from .forms import DaySlotsForm
 
 def stageQuery(stage,area_code):
@@ -90,4 +92,27 @@ def selection(request):
     }
 
     return render(request, 'loadshedding_calc/selection.html', context)
-  
+
+#@login_required
+#def UserProfileView(request):
+#    #book_instance = get_object_or_404(, pk=pk)
+#    profile_instance = get_object_or_404(Profile, user=request.user)
+#    #area_instance = get_object_or_404(CapeTownAreas, pk=1)#profile_instance.user_area)
+#    template_name="loadshedding_calc/user_profile.html"
+
+#    context = {
+#        'user': request.user#,
+#        #'area': area_instance.area_name
+#    }
+
+#    return render(request, template_name, context)
+
+class UserProfileView(LoginRequiredMixin,generic.DetailView):
+#    """Generic class-based view for user profile."""
+    template_name = 'loadshedding_calc/user_profile.html'
+
+    def get_object(self):
+        return self.request.user
+
+#def UserProfileView(request):
+#	return render(request=request, template_name="loadshedding_calc/user_profile.html", context={"user":request.user})

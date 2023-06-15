@@ -4,6 +4,8 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 import datetime
 
+#visit bookmark for inetoone field better query implementation
+
 class CapeTownAreas(models.Model):
     ct_area_id = models.AutoField(primary_key=True)
     area_name = models.CharField(max_length=80)
@@ -11,6 +13,7 @@ class CapeTownAreas(models.Model):
 
     def __str__(self):
         return self.area_name + " is in area code: " + str(self.area_code)
+    
     
 class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)

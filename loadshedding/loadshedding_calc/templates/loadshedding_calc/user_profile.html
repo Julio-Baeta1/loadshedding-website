@@ -1,0 +1,24 @@
+{% extends "base_generic.html" %}
+
+{% block content %}
+    <h1>{{ user.username }}'s Profile</h1>
+
+    {% if user.profile.user_area.pk == 0 %}
+        <p>Please Select an Area </p>
+    {%else%}
+        <p>Your area of interest is {{user.profile.user_area.area_name}} with area code {{user.profile.user_area.area_code}} </p>
+    {% endif %}
+
+    <p>For time interval {{ user.profile.user_time_start|time:"H:i" }} until {{ user.profile.user_time_end|time:"H:i" }} every day</p>
+    
+    {% if user.profile.user_hour_cost == NULL %}
+        <p>Please Assign a hourly cost </p>
+    {%else%}
+        <p>With a hourly cost of {{user.profile.user_hour_cost}} </p>
+    {% endif %}
+
+    <a href="{% url 'index' %}" class="btn btn-warning">Edit</a> 
+
+{% endblock %}
+
+
