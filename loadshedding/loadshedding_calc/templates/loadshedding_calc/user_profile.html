@@ -1,23 +1,23 @@
 {% extends "base_generic.html" %}
 
 {% block content %}
-    <h1>{{ user.username }}'s Profile</h1>
+    <h1>{{ user.get_full_name }}'s Profile</h1>
 
     {% if user.profile.user_area.pk == 0 %}
-        <p>Please Select an Area </p>
+        <p style="color:#FF0000";>Please select an area in the city of Cape Town </p>
     {%else%}
         <p>Your area of interest is {{user.profile.user_area.area_name}} with area code {{user.profile.user_area.area_code}} </p>
     {% endif %}
 
-    <p>For time interval {{ user.profile.user_time_start|time:"H:i" }} until {{ user.profile.user_time_end|time:"H:i" }} every day</p>
+    <p>For time interval from {{ user.profile.user_time_start|time:"H:i" }} until {{ user.profile.user_time_end|time:"H:i" }} every day</p>
     
     {% if user.profile.user_hour_cost == NULL %}
-        <p>Please Assign a hourly cost </p>
+        <p style="color:#FF0000";>Please assign a hourly cost </p>
     {%else%}
         <p>With a hourly cost of {{user.profile.user_hour_cost}} </p>
     {% endif %}
 
-    <a href="{% url 'index' %}" class="btn btn-warning">Edit</a> 
+    <a href="{% url 'edit-profile' %}" class="btn btn-primary">Edit</a> 
 
 {% endblock %}
 

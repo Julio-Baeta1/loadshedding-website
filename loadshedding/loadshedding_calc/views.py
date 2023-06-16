@@ -10,9 +10,10 @@ from django.views import generic
 from django.utils import timezone
 from django.template import loader
 from django.db.models import Q
+from django.db import transaction
 
 from .models import CapeTownSlots, CapeTownAreas, Profile
-from .forms import DaySlotsForm
+from .forms import DaySlotsForm, UserForm, ProfileForm
 
 def stageQuery(stage,area_code):
     """Function to create DB query for stages 1-8 of loadshedding i.e. for stage 6 load-shedding will occur if area code appears as 
@@ -116,3 +117,35 @@ class UserProfileView(LoginRequiredMixin,generic.DetailView):
 
 #def UserProfileView(request):
 #	return render(request=request, template_name="loadshedding_calc/user_profile.html", context={"user":request.user})
+
+@login_required
+@transaction.atomic
+def edit_profile(request):
+
+    if request.method == 'POST':
+
+        user_form = UserForm(request.POST, instance=request.user)
+        profile_form = ProfileForm(request.POST, instance=request.user.profile)
+
+        if user_form.is_valid() and profile_form.is_valid():
+
+            user_form.save()
+            profile_form.save()
+            return HttpResponseRedirect(reverse('user-profile'))
+        
+    else:
+
+        user_form = UserForm(instance=request.user)
+        profile_form = ProfileForm(instance=request.user.profile)
+
+    context = {
+        'user_form': user_form,
+        'profile_form': profile_form
+    }
+
+    return render(request, 'loadshedding_calc/edit_profile.html', context)
+
+
+
+
+    
