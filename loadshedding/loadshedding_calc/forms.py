@@ -9,11 +9,18 @@ from .models import User, Profile
 class TimePickerInput(forms.TimeInput):
         input_type = 'time'
 
-class DaySlotsForm(forms.Form):
-    selected_date = forms.DateField(help_text="Enter date in form dd/mm/yyyy",input_formats=['%d/%m/%Y'])
-    selected_area = forms.IntegerField(help_text="Enter your area code")
-    selected_stage = forms.IntegerField(help_text="Enter the loadshedding stage")
+class DatePickerInput(forms.DateInput):
+        input_type = 'date'
 
+class DaySlotsForm(forms.Form):
+    selected_date = forms.DateField(widget=DatePickerInput)
+    selected_area = forms.IntegerField(label="Enter your area code")
+    selected_stage = forms.IntegerField(label="Enter the loadshedding stage")
+
+    widgets = {
+            'selected_area': forms.NumberInput(attrs={'min': "1", 'max': "16", 'step': "1", 'default': "1"}),
+            'selected_stage': forms.NumberInput(attrs={'min': "0", 'max': "8", 'step': "1"})
+    }
 
     def clean_selected_date(self):
         data_day = self.cleaned_data['selected_date']
@@ -50,6 +57,13 @@ class ProfileForm(forms.ModelForm):
         model = Profile
         fields = ('user_area', 'user_hour_cost', 'user_time_start', 'user_time_end')
         widgets = {
+            'user_hour_cost': forms.NumberInput(attrs={'min': "0.00", 'max': "10000.00", 'step': "0.01"}),
             'user_time_start': TimePickerInput(format='%H:%M'),
             'user_time_end': TimePickerInput(format='%H:%M')
+        }
+        labels = {
+            'user_area': "Select your Cape Town area",
+            'user_hour_cost': "Set your cost per hour (R)",
+            'user_time_start': "Set your usage window start time for the day",
+            'user_time_end': "Set your usage window end time for the day"
         }

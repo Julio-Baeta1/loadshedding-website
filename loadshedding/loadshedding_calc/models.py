@@ -18,7 +18,7 @@ class CapeTownAreas(models.Model):
 class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     user_area = models.ForeignKey(CapeTownAreas, default=0, on_delete=models.PROTECT)
-    user_hour_cost = models.FloatField(null=True)
+    user_hour_cost = models.DecimalField(null=True, max_digits=12, decimal_places=2)
     user_time_start = models.TimeField(default=datetime.time(00, 00))
     user_time_end = models.TimeField(default=datetime.time(23, 59))
 

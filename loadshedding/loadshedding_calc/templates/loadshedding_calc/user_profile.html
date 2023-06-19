@@ -14,7 +14,7 @@
     {% if user.profile.user_hour_cost == NULL %}
         <p style="color:#FF0000";>Please assign a hourly cost </p>
     {%else%}
-        <p>With a hourly cost of {{user.profile.user_hour_cost}} </p>
+        <p>With a cost rate of R{{user.profile.user_hour_cost}} /hour </p>
     {% endif %}
 
     <a href="{% url 'edit-profile' %}" class="btn btn-primary">Edit</a> 
