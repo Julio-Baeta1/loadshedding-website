@@ -42,7 +42,7 @@ class DaySlotsForm(forms.Form):
     def clean_selected_stage(self):
         data_stage = self.cleaned_data['selected_stage']
 
-        if data_stage < 1 or data_stage > 8:
+        if data_stage < 0 or data_stage > 8:
             raise ValidationError(_('Not a valid loadshedding stage'))
         
         return data_stage

@@ -57,8 +57,12 @@ def dayslots(request):
     s_stage = request.session.get('c_stage')
     s_date = request.session.get('c_date')
 
-    slots_query = Q(day=s_day) &  stageQuery(s_stage,s_area)
-    day_slots = CapeTownSlots.objects.filter(slots_query)
+    if s_stage == 0:
+        day_slots = CapeTownSlots.objects.none()
+    else:
+        slots_query = Q(day=s_day) &  stageQuery(s_stage,s_area)
+        day_slots = CapeTownSlots.objects.filter(slots_query)
+
     context = {"day_slots": day_slots,
                "date": s_date
                }
