@@ -13,7 +13,7 @@ from django.db.models import Q
 from django.db import transaction
 
 from .models import CapeTownSlots, CapeTownAreas, Profile
-from .forms import DaySlotsForm, UserForm, ProfileForm
+from .forms import DaySlotsForm, DaySlotsFormLoggedIn, UserForm, ProfileForm
 
 def stageQuery(stage,area_code):
     """Function to create DB query for stages 1-8 of loadshedding i.e. for stage 6 load-shedding will occur if area code appears as 
@@ -39,7 +39,7 @@ def stageQuery(stage,area_code):
     if stage > 7:
         stage_query |= Q(stage8 =area_code)
 
-    if stage > 1:
+    if stage > 1: #Ensures that if only single query in Q object it is not encapsulated by larger Q()
         stage_query = Q(stage_query)
 
     return stage_query
@@ -68,59 +68,87 @@ def dayslots(request):
                }
     return render(request, "loadshedding_calc/day.html", context)
 
+def dayslotsLoggedIn(request):
+    """Displays load-shedding time slots for a given day and stage based on logged in user's area code"""
+     
+    s_day = request.session.get('c_day') #Easier to pass day as int instead of extracting from date string
+    s_area = request.user.profile.getUserArea()
+    s_stage = request.session.get('c_stage')
+    s_date = request.session.get('c_date')
+
+    if s_stage == 0:
+        day_slots = CapeTownSlots.objects.none()
+    else:
+        slots_query = Q(day=s_day) &  stageQuery(s_stage,s_area)
+        day_slots = CapeTownSlots.objects.filter(slots_query)
+
+    context = {"day_slots": day_slots,
+               "date": s_date
+               }
+    return render(request, "loadshedding_calc/day.html", context)
+
 
 def selection(request):
     """Simple form to enter relevent details to get load-shedding schedule for a particular day, area and load-shedding stage.
         Uses POST for django builtin security"""
-    
-    if request.method == 'POST':
+    if request.user.is_authenticated:
+            #Logged in User form
+            if request.method == 'POST':
 
-        form = DaySlotsForm(request.POST)
+                form = DaySlotsFormLoggedIn(request.POST)
 
-        if form.is_valid():
-            date = form.cleaned_data['selected_date']
-            area = form.cleaned_data['selected_area']
-            stage = form.cleaned_data['selected_stage']
+                if form.is_valid():
+                    date = form.cleaned_data['selected_date']
+                    stage = form.cleaned_data['selected_stage']
             
-            request.session['c_day'] = date.day
-            request.session['c_date'] = date.strftime("%A %d %B %Y")
-            request.session['c_area'] = area
-            request.session['c_stage'] = stage
+                request.session['c_day'] = date.day
+                request.session['c_date'] = date.strftime("%A %d %B %Y")
+                request.session['c_stage'] = stage
 
-            return HttpResponseRedirect(reverse('day-slots'))
+                return HttpResponseRedirect(reverse('day-slots-logged-in'))
+
+            else:
+                form = DaySlotsFormLoggedIn(request.POST)
+
+            context = {
+                'form': form,
+            }
+
+            return render(request, 'loadshedding_calc/selection.html', context)
 
     else:
-        form = DaySlotsForm(request.POST)
+        #Anonymous web user form
+        if request.method == 'POST':
 
-    context = {
-        'form': form,
-    }
+            form = DaySlotsForm(request.POST)
 
-    return render(request, 'loadshedding_calc/selection.html', context)
+            if form.is_valid():
+                date = form.cleaned_data['selected_date']
+                area = form.cleaned_data['selected_area']
+                stage = form.cleaned_data['selected_stage']
+            
+                request.session['c_day'] = date.day
+                request.session['c_date'] = date.strftime("%A %d %B %Y")
+                request.session['c_area'] = area
+                request.session['c_stage'] = stage
 
-#@login_required
-#def UserProfileView(request):
-#    #book_instance = get_object_or_404(, pk=pk)
-#    profile_instance = get_object_or_404(Profile, user=request.user)
-#    #area_instance = get_object_or_404(CapeTownAreas, pk=1)#profile_instance.user_area)
-#    template_name="loadshedding_calc/user_profile.html"
+                return HttpResponseRedirect(reverse('day-slots'))
 
-#    context = {
-#        'user': request.user#,
-#        #'area': area_instance.area_name
-#    }
+        else:
+            form = DaySlotsForm(request.POST)
 
-#    return render(request, template_name, context)
+        context = {
+            'form': form,
+        }
+
+        return render(request, 'loadshedding_calc/selection.html', context)
 
 class UserProfileView(LoginRequiredMixin,generic.DetailView):
-#    """Generic class-based view for user profile."""
+    """Generic class-based view for user profile."""
     template_name = 'loadshedding_calc/user_profile.html'
 
     def get_object(self):
         return self.request.user
-
-#def UserProfileView(request):
-#	return render(request=request, template_name="loadshedding_calc/user_profile.html", context={"user":request.user})
 
 @login_required
 @transaction.atomic
