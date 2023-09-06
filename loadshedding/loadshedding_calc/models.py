@@ -3,9 +3,9 @@ from django.contrib.auth.models import User
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 import datetime
-
-#visit bookmark for inetoone field better query implementation
-
+from django.db.models import Q
+#######################################################################################################################################
+#Table to link Cape Town Area name to its appropriate Area code 
 class CapeTownAreas(models.Model):
     ct_area_id = models.AutoField(primary_key=True)
     area_name = models.CharField(max_length=80)
@@ -14,33 +14,10 @@ class CapeTownAreas(models.Model):
     def __str__(self):
         return self.area_name + " is in area code: " + str(self.area_code)
     
-    
-class Profile(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
-    user_area = models.ForeignKey(CapeTownAreas, default=0, on_delete=models.PROTECT)
-    user_hour_cost = models.DecimalField(null=True, max_digits=12, decimal_places=2)
-    user_time_start = models.TimeField(default=datetime.time(00, 00))
-    user_time_end = models.TimeField(default=datetime.time(23, 59))
-
-    @receiver(post_save, sender=User)
-    def create_user_profile(sender, instance, created, **kwargs):
-        if created:
-            Profile.objects.create(user=instance)
-
-    @receiver(post_save, sender=User)
-    def save_user_profile(sender, instance, **kwargs):
-        instance.profile.save()
-
-    def getUserArea(self):
-        return self.user_area.ct_area_id
-
-    def __str__(self):
-        return self.user.username + " is in area code " + str(self.user_area.area_code) + " and has an hourly cost of R" + str(self.user_hour_cost) + " from " + self.user_time_start.strftime('%H:%M')+" to "+self.user_time_end.strftime('%H:%M')
-
-#class TimeSlotsDay(models.Model):
-#    user = models.ForeignKey(UserProfile, on_delete=models.CASCADE)
-#    date = models.IntegerField()
-#    time_slots = models.CharField(max_length=80)
+#######################################################################################################################################
+# Table of Day of month with all its loadshedding slots given by start_time and end_time.
+# Each respective stage column contains an area code for each slot and is read as:
+#               if the load-shedding stage is 4 then all area codes in the columns stage1 -> stage4 will recieve loadshedding for that slot
 
 class CapeTownSlots(models.Model):
     slot_id = models.AutoField(primary_key=True)
@@ -63,6 +40,59 @@ class CapeTownSlots(models.Model):
     def __str__(self):
         return str(self.day)+" = "+self.start_time.strftime('%H:%M')+"-"+self.end_time.strftime('%H:%M')
     
+    #Complete
     def is_stage(self,stage_val):
         """Returns 1 if contains stage in lower number """
         return True
+    
+#######################################################################################################################################
+#Table of past dates and load-shedding stage which occured during relevent python3 manage.py makemigrationstime intervals
+
+#Possible improvement would be to have start and duration instead of start and end, however this might add more complexity to determining
+#user defined load-shedding stage intervals
+
+class CapeTownPastStages(models.Model): 
+    past_stage_id = models.AutoField(primary_key=True)
+    date = models.DateField()
+    stage = models.SmallIntegerField()
+    start_time = models.TimeField()
+    end_time = models.TimeField()
+    
+    class Meta:
+        managed = False
+        db_table = 'cape_town_past_stages'
+
+    def filterDateTimes(self,q_date,q_start,q_end):
+        #Filters by user's chosen hours for a particular date
+        a = datetime.datetime.combine(q_date,q_start) 
+        b = datetime.datetime.combine(q_date,q_end) 
+        day_slots = self.objects.filter(Q(date=q_date) & (Q(start_time__range=(a, b)) | Q(end_time__range=(a, b))) )
+        return day_slots
+    
+
+    def __str__(self):
+        return str(self.date.strftime('%d-%m-%Y'))+" ["+self.start_time.strftime('%H:%M')+"-"+self.end_time.strftime('%H:%M')+"] = stage " + str(self.stage)    
+
+#######################################################################################################################################
+#User Profile Model
+class Profile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    user_area = models.ForeignKey(CapeTownAreas, default=0, on_delete=models.PROTECT)
+    user_hour_cost = models.DecimalField(null=True, max_digits=12, decimal_places=2)
+    user_time_start = models.TimeField(default=datetime.time(00, 00))
+    user_time_end = models.TimeField(default=datetime.time(23, 59))
+
+    @receiver(post_save, sender=User)
+    def create_user_profile(sender, instance, created, **kwargs):
+        if created:
+            Profile.objects.create(user=instance)
+
+    @receiver(post_save, sender=User)
+    def save_user_profile(sender, instance, **kwargs):
+        instance.profile.save()
+
+    def getUserArea(self):
+        return self.user_area.ct_area_id
+
+    def __str__(self):
+        return self.user.username + " is in area code " + str(self.user_area.area_code) + " and has an hourly cost of R" + str(self.user_hour_cost) + " from " + self.user_time_start.strftime('%H:%M')+" to "+self.user_time_end.strftime('%H:%M')
