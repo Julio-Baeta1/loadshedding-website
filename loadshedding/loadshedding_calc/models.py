@@ -36,14 +36,49 @@ class CapeTownSlots(models.Model):
     class Meta:
         managed = False
         db_table = 'cape_town_slots'
+    
+    def stageQuery(self,stage,area_code):
+        """Function to create DB query for stages 1-8 of loadshedding i.e. for stage 6 load-shedding will occur if area code appears 
+        as the field value for column stage6 all the way down to column stage1"""
 
+        if stage <1 or stage > 8:
+            return 
+
+        stage_query = Q(stage1 = area_code)
+
+        if stage > 1:
+            stage_query |= Q(stage2 =area_code)
+        if stage > 2:
+            stage_query |= Q(stage3 =area_code)
+        if stage > 3:
+            stage_query |= Q(stage4 =area_code)
+        if stage > 4:
+            stage_query |= Q(stage5 =area_code)
+        if stage > 5:
+            stage_query |= Q(stage6 =area_code)
+        if stage > 6:
+            stage_query |= Q(stage7 =area_code)
+        if stage > 7:
+            stage_query |= Q(stage8 =area_code)
+
+        if stage > 1: #Ensures that if only single query in Q object it is not encapsulated by larger Q()
+            stage_query = Q(stage_query)
+
+        return stage_query
+    
+    def filterbyStageTimes(self, q_day, q_area, q_stage, t1, t2):
+        day_slots = self.objects.filter(Q(day=q_day) & Q(start_time__gte=t1) & Q(end_time__lte=t2) )
+        stage_query = self.stageQuery(self,q_stage,q_area)
+        day_slots = day_slots.filter(stage_query)
+        return day_slots
+    
     def __str__(self):
         return str(self.day)+" = "+self.start_time.strftime('%H:%M')+"-"+self.end_time.strftime('%H:%M')
     
-    #Complete
-    def is_stage(self,stage_val):
-        """Returns 1 if contains stage in lower number """
-        return True
+    def printFullDay(self,q_day):
+        day_slots = self.objects.filter(day=q_day) 
+        for slot in day_slots:
+            print(f"{slot.start_time}-{slot.end_time} = 1:{slot.stage1}, 2:{slot.stage2}, 3:{slot.stage3}, 4:{slot.stage4}, 5:{slot.stage5}, 6:{slot.stage6}, 7:{slot.stage7}, 8:{slot.stage8}")
     
 #######################################################################################################################################
 #Table of past dates and load-shedding stage which occured during relevent python3 manage.py makemigrationstime intervals
