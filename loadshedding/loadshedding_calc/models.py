@@ -128,6 +128,12 @@ class Profile(models.Model):
 
     def getUserArea(self):
         return self.user_area.ct_area_id
+    
+    def getUserStartTime(self):
+        return self.user_time_start
+    
+    def getUserEndTime(self):
+        return self.user_time_end
 
     def __str__(self):
         return self.user.username + " is in area code " + str(self.user_area.area_code) + " and has an hourly cost of R" + str(self.user_hour_cost) + " from " + self.user_time_start.strftime('%H:%M')+" to "+self.user_time_end.strftime('%H:%M')

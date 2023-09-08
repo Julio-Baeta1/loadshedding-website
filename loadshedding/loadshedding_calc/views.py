@@ -12,7 +12,7 @@ from django.template import loader
 from django.db.models import Q
 from django.db import transaction
 
-from .models import CapeTownSlots, CapeTownAreas, Profile
+from .models import CapeTownSlots, CapeTownPastStages, CapeTownAreas, Profile
 from .forms import DaySlotsForm, DaySlotsFormLoggedIn, UserForm, ProfileForm
 
 def stageQuery(stage,area_code):
@@ -69,21 +69,25 @@ def dayslots(request):
     return render(request, "loadshedding_calc/day.html", context)
 
 def dayslotsLoggedIn(request):
-    """Displays load-shedding time slots for a given day and stage based on logged in user's area code"""
+    """Displays load-shedding time slots for a given day based on logged in user's area code"""
      
-    s_day = request.session.get('c_day') #Easier to pass day as int instead of extracting from date string
-    s_area = request.user.profile.getUserArea()
-    s_stage = request.session.get('c_stage')
-    s_date = request.session.get('c_date')
+    u_date = datetime.datetime.strptime(request.session.get('c_date'), "%d-%m-%Y").date()
+    u_area = request.user.profile.getUserArea()
+    final_obj = CapeTownSlots.objects.none()
 
-    if s_stage == 0:
-        day_slots = CapeTownSlots.objects.none()
-    else:
-        slots_query = Q(day=s_day) &  stageQuery(s_stage,s_area)
-        day_slots = CapeTownSlots.objects.filter(slots_query)
+    u_start = request.user.profile.getUserStartTime()
+    u_end = request.user.profile.getUserEndTime()
 
-    context = {"day_slots": day_slots,
-               "date": s_date
+    #day_stages gets all load-shedding stage values and time intervals that occur during user's selected day time allocations
+    day_stages = CapeTownPastStages.filterDateTimes(CapeTownPastStages ,u_date,u_start,u_end)
+
+    #final_obj contains all slots that user will experience loadshedding for their allocated day time hours
+    for obj in day_stages:
+        temp_obj = CapeTownSlots.filterbyStageTimes(CapeTownSlots, u_date.day,u_area,obj.stage,u_start,u_end)
+        final_obj = final_obj | temp_obj
+
+    context = {"day_slots": final_obj,
+               "date": u_date.strftime("%A %d %B %Y")
                }
     return render(request, "loadshedding_calc/day.html", context)
 
@@ -99,11 +103,8 @@ def selection(request):
 
                 if form.is_valid():
                     date = form.cleaned_data['selected_date']
-                    stage = form.cleaned_data['selected_stage']
             
-                request.session['c_day'] = date.day
-                request.session['c_date'] = date.strftime("%A %d %B %Y")
-                request.session['c_stage'] = stage
+                request.session['c_date'] = date.strftime("%d-%m-%Y")
 
                 return HttpResponseRedirect(reverse('day-slots-logged-in'))
 

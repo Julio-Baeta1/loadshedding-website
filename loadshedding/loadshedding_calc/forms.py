@@ -48,12 +48,8 @@ class DaySlotsForm(forms.Form):
         return data_stage
     
 class DaySlotsFormLoggedIn(forms.Form):
+    
     selected_date = forms.DateField(widget=DatePickerInput)
-    selected_stage = forms.IntegerField(label="Enter the loadshedding stage")
-
-    widgets = {
-            'selected_stage': forms.NumberInput(attrs={'min': "0", 'max': "8", 'step': "1"})
-    }
 
     def clean_selected_date(self):
         data_day = self.cleaned_data['selected_date']
@@ -64,13 +60,6 @@ class DaySlotsFormLoggedIn(forms.Form):
         
         return data_day
     
-    def clean_selected_stage(self):
-        data_stage = self.cleaned_data['selected_stage']
-
-        if data_stage < 0 or data_stage > 8:
-            raise ValidationError(_('Not a valid loadshedding stage'))
-        
-        return data_stage
 
 class UserForm(forms.ModelForm):
     class Meta:
