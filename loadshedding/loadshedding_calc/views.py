@@ -52,20 +52,27 @@ def dayslots(request):
     """Displays load-shedding time slots for a given area based on date and load-shedding stage
         Currently uses cookies but might expand to be user specific"""
     
-    s_day = request.session.get('c_day') #Easier to pass day as int instead of extracting from date string
+    #s_day = request.session.get('c_day') #Easier to pass day as int instead of extracting from date string
     s_area = request.session.get('c_area')
-    s_stage = request.session.get('c_stage')
-    s_date = request.session.get('c_date')
+    #s_stage = request.session.get('c_stage')
+    s_date = datetime.datetime.strptime(request.session.get('c_date'), "%d-%m-%Y").date()
 
-    if s_stage == 0:
-        day_slots = CapeTownSlots.objects.none()
-    else:
-        slots_query = Q(day=s_day) &  stageQuery(s_stage,s_area)
-        day_slots = CapeTownSlots.objects.filter(slots_query)
+    s_start = datetime.time(0,0)
+    s_end = datetime.time(23,59)
+    final_obj = CapeTownSlots.objects.none()
 
-    context = {"day_slots": day_slots,
-               "date": s_date
+    #day_stages gets all load-shedding stage values and time intervals that occur during user's selected day time allocations
+    day_stages = CapeTownPastStages.filterDateTimes(CapeTownPastStages ,s_date,s_start,s_end)
+
+    #final_obj contains all slots that user will experience loadshedding for their allocated day time hours
+    for obj in day_stages:
+        temp_obj = CapeTownSlots.filterbyStageTimes(CapeTownSlots, s_date.day,s_area,obj.stage,s_start,s_end)
+        final_obj = final_obj | temp_obj
+
+    context = {"day_slots": final_obj,
+               "date": s_date.strftime("%A %d %B %Y")
                }
+
     return render(request, "loadshedding_calc/day.html", context)
 
 def dayslotsLoggedIn(request):
@@ -126,12 +133,13 @@ def selection(request):
             if form.is_valid():
                 date = form.cleaned_data['selected_date']
                 area = form.cleaned_data['selected_area']
-                stage = form.cleaned_data['selected_stage']
+                #stage = form.cleaned_data['selected_stage']
             
-                request.session['c_day'] = date.day
-                request.session['c_date'] = date.strftime("%A %d %B %Y")
+                #request.session['c_day'] = date.day
+                #request.session['c_date'] = date.strftime("%A %d %B %Y")
+                request.session['c_date'] = date.strftime("%d-%m-%Y")
                 request.session['c_area'] = area
-                request.session['c_stage'] = stage
+                #request.session['c_stage'] = stage
 
                 return HttpResponseRedirect(reverse('day-slots'))
 
