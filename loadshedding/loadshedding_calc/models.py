@@ -4,6 +4,7 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 import datetime
 from django.db.models import Q
+
 #######################################################################################################################################
 #Table to link Cape Town Area name to its appropriate Area code 
 class CapeTownAreas(models.Model):
@@ -37,7 +38,7 @@ class CapeTownSlots(models.Model):
         managed = False
         db_table = 'cape_town_slots'
     
-    def stageQuery(self,stage,area_code):
+    def stageQuery(stage,area_code):
         """Function to create DB query for stages 1-8 of loadshedding i.e. for stage 6 load-shedding will occur if area code appears 
         as the field value for column stage6 all the way down to column stage1"""
 
@@ -66,9 +67,28 @@ class CapeTownSlots(models.Model):
 
         return stage_query
     
+    def cleanDates(t1,t2):
+        if(t1.minute != 0):
+            t1 = datetime.time(t1.hour, 0)
+        if(t1.hour %2 != 0):
+            t1 = datetime.time(t1.hour-1, 0)
+        if(t2.hour<23):
+            if(t2.minute != 0):
+                t2 = datetime.time(t2.hour+1, 0)
+            if(t2.hour %2 != 0):
+                t2 = datetime.time(t2.hour+1, 0)
+        else:
+            t2 = datetime.time(23, 59)
+
+        return t1, t2
+
+    
     def filterbyStageTimes(self, q_day, q_area, q_stage, t1, t2):
+        
+        t1, t2 = self.cleanDates(t1,t2)
+
         day_slots = self.objects.filter(Q(day=q_day) & Q(start_time__gte=t1) & Q(end_time__lte=t2) )
-        stage_query = self.stageQuery(self,q_stage,q_area)
+        stage_query = self.stageQuery(q_stage,q_area)
         day_slots = day_slots.filter(stage_query)
         return day_slots
     
