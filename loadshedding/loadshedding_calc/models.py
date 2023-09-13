@@ -118,10 +118,26 @@ class CapeTownPastStages(models.Model):
         db_table = 'cape_town_past_stages'
 
     def filterDateTimes(self,q_date,q_start,q_end):
-        #Filters by user's chosen hours for a particular date
         a = datetime.datetime.combine(q_date,q_start) 
         b = datetime.datetime.combine(q_date,q_end) 
-        day_slots = self.objects.filter(Q(date=q_date) & (Q(start_time__range=(a, b)) | Q(end_time__range=(a, b))) )
+        #day_slots = self.objects.filter(Q(date=q_date) & (Q(start_time__range=(a, b)) | Q(end_time__range=(a, b))) )
+        #day_slots = self.objects.filter(Q(date=q_date) & Q(start_time__gte=q_start) & Q(end_time__lte=q_end) )
+        day_slots = self.objects.filter(Q(date=q_date) & (Q(start_time__gte=q_start) & Q(end_time__lte=q_end)) )
+        
+        if not day_slots:
+            day_stages = self.objects.filter(date=q_date) 
+            for stage in day_stages:
+                #if q_start >= stage.start_time and q_end <= stage.end_time:
+                if q_start >= stage.start_time and q_end <= stage.end_time:
+                    return self.objects.filter(past_stage_id = stage.past_stage_id )
+
+        #day_slots = []
+        #day_stages = self.objects.filter(date=q_date)
+        #for stage in day_stages:
+        ##    print(f"qs:{q_start}, stage:{stage.start_time}    qe:{q_end}, stage:{stage.end_time}")
+         #   if q_start >= stage.start_time or q_end <= stage.end_time:
+         #       day_slots.append(stage)
+
         return day_slots
     
 
