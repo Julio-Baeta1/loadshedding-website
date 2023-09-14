@@ -5,6 +5,9 @@ from django.db.models import Q
 from datetime import datetime, time
 from django.db import connection
 
+###################################################################################################################################
+###################################################################################################################################
+
 class CapeTownSlotsStageQueryTest(TestCase):
 
     def testReturnsSingleQObjectForStage1(self):
@@ -31,6 +34,9 @@ class CapeTownSlotsStageQueryTest(TestCase):
         t_area_code = 1
         t_query = CapeTownSlots.stageQuery(t_stage,t_area_code)
         self.assertEqual(t_query, None)
+
+###################################################################################################################################
+###################################################################################################################################
 
 class CapeTownPastStagesFilterDateTimesTest(TestCase):
 
@@ -70,7 +76,7 @@ class CapeTownPastStagesFilterDateTimesTest(TestCase):
 
 ###################################################################################################################################
 #One slot tests
-    def testOneSlotExact(self):
+    def testOneSlotExactlySameAsInterval(self):
         t_date = datetime(2023,1,1)
         t_start = time(16,0)
         t_end = time(20,0)
@@ -108,4 +114,34 @@ class CapeTownPastStagesFilterDateTimesTest(TestCase):
 
 ###################################################################################################################################
 #Multiple slots
- 
+    def testMultipleSlotsExactlySameAsIntervals(self):
+        t_date = datetime(2023,1,1)
+        t_start = time(5,0)
+        t_end = time(20,0)
+        t_set = CapeTownPastStages.filterDateTimes(CapeTownPastStages,t_date,t_start,t_end)
+        exp_set = CapeTownPastStages.objects.filter(Q(past_stage_id=2) | Q(past_stage_id=3))
+        self.assertEqual(list(t_set), list(exp_set))
+
+    def testInsideMultipleSlotsNoBoundarySharedWithIntervals(self):
+        t_date = datetime(2023,1,1)
+        t_start = time(5,30)
+        t_end = time(16,7)
+        t_set = CapeTownPastStages.filterDateTimes(CapeTownPastStages,t_date,t_start,t_end)
+        exp_set = CapeTownPastStages.objects.filter(Q(past_stage_id=2) | Q(past_stage_id=3))
+        self.assertEqual(list(t_set), list(exp_set))
+
+    def testMultipleSlotsStartAndMiddle(self):
+        t_date = datetime(2023,1,1)
+        t_start = time(5,0)
+        t_end = time(17,0)
+        t_set = CapeTownPastStages.filterDateTimes(CapeTownPastStages,t_date,t_start,t_end)
+        exp_set = CapeTownPastStages.objects.filter(Q(past_stage_id=2) | Q(past_stage_id=3))
+        self.assertEqual(list(t_set), list(exp_set))
+
+    def testMultipleSlotsMiddleAndEnd(self):
+        t_date = datetime(2023,1,1)
+        t_start = time(11,0)
+        t_end = time(20,0)
+        t_set = CapeTownPastStages.filterDateTimes(CapeTownPastStages,t_date,t_start,t_end)
+        exp_set = CapeTownPastStages.objects.filter(Q(past_stage_id=2) | Q(past_stage_id=3))
+        self.assertEqual(list(t_set), list(exp_set))

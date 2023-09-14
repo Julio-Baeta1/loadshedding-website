@@ -118,25 +118,35 @@ class CapeTownPastStages(models.Model):
         db_table = 'cape_town_past_stages'
 
     def filterDateTimes(self,q_date,q_start,q_end):
-        a = datetime.datetime.combine(q_date,q_start) 
-        b = datetime.datetime.combine(q_date,q_end) 
-        #day_slots = self.objects.filter(Q(date=q_date) & (Q(start_time__range=(a, b)) | Q(end_time__range=(a, b))) )
-        #day_slots = self.objects.filter(Q(date=q_date) & Q(start_time__gte=q_start) & Q(end_time__lte=q_end) )
-        day_slots = self.objects.filter(Q(date=q_date) & (Q(start_time__gte=q_start) & Q(end_time__lte=q_end)) )
+        """"Simple filter that will return query set for date q_date of stage intervals that span the time window ranging from q_start
+            to q_end
+        """  
+        start_a = datetime.datetime.combine(q_date,q_start) 
+        end_b = datetime.datetime.combine(q_date,q_end) 
+
+        #Must not include q_end in q_start's search range if it is possibly the boundary of a stage time interval
+        if q_end.minute == 0:
+            start_b = datetime.datetime.combine(q_date,datetime.time(q_end.hour-1,59)) 
+        else:
+            start_b = datetime.datetime.combine(q_date,q_end)
+
+        #Same as above except to exclude q_start from the q_end seacrh range
+        if q_start.minute == 0:
+            end_a = datetime.datetime.combine(q_date,datetime.time(q_start.hour,1)) 
+        else:
+            end_a = datetime.datetime.combine(q_date,q_start) 
+
+        #Returns Query set if stage time interval falls within search window
+        day_slots = self.objects.filter(Q(date=q_date) & (Q(start_time__range=(start_a, start_b)) | Q(end_time__range=(end_a, end_b))) )
         
+        #For the case when the search window is fully contained within a stage interval 
         if not day_slots:
+
             day_stages = self.objects.filter(date=q_date) 
             for stage in day_stages:
-                #if q_start >= stage.start_time and q_end <= stage.end_time:
-                if q_start >= stage.start_time and q_end <= stage.end_time:
-                    return self.objects.filter(past_stage_id = stage.past_stage_id )
 
-        #day_slots = []
-        #day_stages = self.objects.filter(date=q_date)
-        #for stage in day_stages:
-        ##    print(f"qs:{q_start}, stage:{stage.start_time}    qe:{q_end}, stage:{stage.end_time}")
-         #   if q_start >= stage.start_time or q_end <= stage.end_time:
-         #       day_slots.append(stage)
+                if q_start >= stage.start_time and q_end <= stage.end_time:
+                    return self.objects.filter(past_stage_id = stage.past_stage_id ) #Only one query item is expected
 
         return day_slots
     
