@@ -68,6 +68,7 @@ class CapeTownSlots(models.Model):
         return stage_query
     
     def cleanDates(t1,t2):
+        #Clean dates to work in filterbyStageTimes function below
         if(t1.minute != 0):
             t1 = datetime.time(t1.hour, 0)
         if(t1.hour %2 != 0):
