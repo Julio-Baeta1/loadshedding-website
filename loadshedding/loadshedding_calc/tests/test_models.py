@@ -53,6 +53,48 @@ class CapeTownSlotsCleanDatesTest(TestCase):
         e1 = time(2,0)
         self.assertEqual(test_1, e1)
 
+    def testOddFirstTime(self):
+        t1 = time(17,00)
+        t2 = time(20,00)
+        test_1, test_2 = CapeTownSlots.cleanDates(t1,t2)
+        e1 = time(16,0)
+        self.assertEqual(test_1, e1)
+
+    def testMinutesInSecondTimeAndOddHour(self):
+        t1 = time(8,0)
+        t2 = time(11,15)
+        test_1, test_2 = CapeTownSlots.cleanDates(t1,t2)
+        e2 = time(12,0)
+        self.assertEqual(test_2, e2)
+
+    def testMinutesInSecondTimeAndEvenHour(self):
+        t1 = time(8,0)
+        t2 = time(12,45)
+        test_1, test_2 = CapeTownSlots.cleanDates(t1,t2)
+        e2 = time(14,0)
+        self.assertEqual(test_2, e2)
+
+    def testSecondTime2300(self):
+        t1 = time(8,0)
+        t2 = time(23,00)
+        test_1, test_2 = CapeTownSlots.cleanDates(t1,t2)
+        e2 = time(23,59)
+        self.assertEqual(test_2, e2)
+
+    def testSecondTime22AndMinutes(self):
+        t1 = time(8,0)
+        t2 = time(22,15)
+        test_1, test_2 = CapeTownSlots.cleanDates(t1,t2)
+        e2 = time(23,59)
+        self.assertEqual(test_2, e2)
+
+    def testSecondTime2200(self):
+        t1 = time(8,0)
+        t2 = time(22,00)
+        test_1, test_2 = CapeTownSlots.cleanDates(t1,t2)
+        e2 = time(22,00)
+        self.assertEqual(test_2, e2)
+
 ###################################################################################################################################
 
 class CapeTownSlotsFilterByStageTimesTest(TestCase):

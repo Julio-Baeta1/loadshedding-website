@@ -73,11 +73,14 @@ class CapeTownSlots(models.Model):
             t1 = datetime.time(t1.hour, 0)
         if(t1.hour %2 != 0):
             t1 = datetime.time(t1.hour-1, 0)
-        if(t2.hour<23):
+        if(t2.hour<22):
             if(t2.minute != 0):
                 t2 = datetime.time(t2.hour+1, 0)
             if(t2.hour %2 != 0):
                 t2 = datetime.time(t2.hour+1, 0)
+        elif(t2.hour==22 and t2.minute==0):
+            #Find better solution
+            t2 = datetime.time(22,0)
         else:
             t2 = datetime.time(23, 59)
 
