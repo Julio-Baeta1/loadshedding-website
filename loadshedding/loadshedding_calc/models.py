@@ -121,6 +121,12 @@ class CapeTownPastStages(models.Model):
         managed = False
         db_table = 'cape_town_past_stages'
 
+    def getEarliestDate(self):
+        return self.objects.earliest('date').date
+    
+    def getLatestDate(self):
+        return self.objects.latest('date').date
+
     def filterDateTimes(self,q_date,q_start,q_end):
         """"Simple filter that will return query set for date q_date of stage intervals that span the time window ranging from q_start
             to q_end

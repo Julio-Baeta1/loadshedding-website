@@ -52,8 +52,10 @@ def selection(request):
             form = DaySlotsForm(request.POST)
 
             if form.is_valid():
-                date = form.cleaned_data['selected_date']
-                area = form.cleaned_data['selected_area']
+                #date = form.cleaned_data['selected_date']
+                #area = form.cleaned_data['selected_area']
+                date = form.clean_selected_date()
+                area = form.clean_selected_area()
 
                 request.session['c_date'] = date.strftime("%d-%m-%Y")
                 request.session['c_area'] = area

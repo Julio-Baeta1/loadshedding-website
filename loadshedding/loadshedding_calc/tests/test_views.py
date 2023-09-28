@@ -20,6 +20,8 @@ class HomePageViewTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, 'index.html')
         self.assertTemplateUsed(response, 'base_generic.html')
-        
+
 ##################################################################################################
+
+
 

@@ -4,7 +4,7 @@ from django import forms
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 
-from .models import User, Profile
+from .models import User, Profile, CapeTownPastStages
 
 class TimePickerInput(forms.TimeInput):
         input_type = 'time'
@@ -13,22 +13,23 @@ class DatePickerInput(forms.DateInput):
         input_type = 'date'
 
 class DaySlotsForm(forms.Form):
+    #error_css_class = "error"
     selected_date = forms.DateField(widget=DatePickerInput)
     selected_area = forms.IntegerField(label="Enter your area code")
-    #selected_stage = forms.IntegerField(label="Enter the loadshedding stage")
 
     widgets = {
             'selected_area': forms.NumberInput(attrs={'min': "1", 'max': "16", 'step': "1", 'default': "1"}),
-            #'selected_stage': forms.NumberInput(attrs={'min': "0", 'max': "8", 'step': "1"})
     }
 
     def clean_selected_date(self):
         data_day = self.cleaned_data['selected_date']
         
         #Must add further validation
-        if data_day.day < 1 or data_day.day > 31:   
-            raise ValidationError(_('Not a valid date'))
-        
+        #if data_day.day < 1 or data_day.day > 31:   
+        #    raise ValidationError(_('Not a valid date'))
+        if data_day < CapeTownPastStages.getEarliestDate(CapeTownPastStages) or data_day > CapeTownPastStages.getLatestDate(CapeTownPastStages):
+            raise ValidationError(_('No load-shedding stage information avaliable for selected date'))
+
         return data_day
     
     def clean_selected_area(self):
