@@ -93,7 +93,12 @@ class CapeTownSlots(models.Model):
 
         day_slots = self.objects.filter(Q(day=q_day) & Q(start_time__gte=t1) & Q(end_time__lte=t2) )
         stage_query = self.stageQuery(q_stage,q_area)
-        day_slots = day_slots.filter(stage_query)
+
+        if stage_query is None:
+            day_slots = self.objects.none()
+        else:
+            day_slots = day_slots.filter(stage_query)
+
         return day_slots
     
     def __str__(self):

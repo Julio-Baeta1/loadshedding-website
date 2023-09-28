@@ -88,7 +88,15 @@ def dayslots(request):
 
     #final_obj contains all slots that user will experience loadshedding for their allocated day time hours
     for obj in day_stages:
-        temp_obj = CapeTownSlots.filterbyStageTimes(CapeTownSlots, s_date.day,s_area,obj.stage,s_start,s_end)
+        if(obj.start_time < s_start):
+            obj.start_time = s_start
+        if(obj.end_time > s_end):
+            obj.end_time = s_end
+        #Must fix data in db CapeTownPastStages to end on 23:59 instead of 00:00
+        if(obj.end_time == datetime.time(0,0)):
+            obj.end_time = datetime.time(23,59)
+        #temp_obj = CapeTownSlots.filterbyStageTimes(CapeTownSlots, s_date.day,s_area,obj.stage,s_start,s_end)
+        temp_obj = CapeTownSlots.filterbyStageTimes(CapeTownSlots, s_date.day,s_area,obj.stage,obj.start_time,obj.end_time)
         final_obj = final_obj | temp_obj
 
     context = {"day_slots": final_obj,
@@ -113,7 +121,14 @@ def dayslotsLoggedIn(request):
 
     #final_obj contains all slots that user will experience loadshedding for their allocated day time hours
     for obj in day_stages:
-        temp_obj = CapeTownSlots.filterbyStageTimes(CapeTownSlots, u_date.day,u_area,obj.stage,u_start,u_end)
+        if(obj.start_time < u_start):
+            obj.start_time = u_start
+        if(obj.end_time > u_end):
+            obj.end_time = u_end
+        if(obj.end_time == datetime.time(0,0)):
+            obj.end_time = datetime.time(23,59)
+        #temp_obj = CapeTownSlots.filterbyStageTimes(CapeTownSlots, u_date.day,u_area,obj.stage,u_start,u_end)
+        temp_obj = CapeTownSlots.filterbyStageTimes(CapeTownSlots, u_date.day,u_area,obj.stage,obj.start_time,obj.end_time)
         final_obj = final_obj | temp_obj
 
     context = {"day_slots": final_obj,
