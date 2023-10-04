@@ -13,9 +13,9 @@ from django.db import transaction
 from .models import CapeTownSlots, CapeTownPastStages, CapeTownAreas, Profile
 from .forms import DaySlotsForm, DaySlotsFormLoggedIn, UserForm, ProfileForm
 
-def index(request):
+def home(request):
     """View function for home page of site."""
-    return render(request, 'index.html')
+    return render(request, 'home.html')
 
 ###################################################################################################################################
 #Day Slot Selection Views
@@ -52,8 +52,6 @@ def selection(request):
             form = DaySlotsForm(request.POST)
 
             if form.is_valid():
-                #date = form.cleaned_data['selected_date']
-                #area = form.cleaned_data['selected_area']
                 date = form.clean_selected_date()
                 area = form.clean_selected_area()
 
