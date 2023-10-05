@@ -1,64 +1,76 @@
 from django.test import TestCase
+from django.db import connection
+from django import forms
 
-from loadshedding_calc.forms import DaySlotsForm
+from datetime import datetime, time
+
+from loadshedding_calc.models import CapeTownPastStages
+from loadshedding_calc.forms import DaySlotsForm, DatePickerInput
 
 class DaySlotsFormTest(TestCase):
-    """Test Default Form is valid """
-    def test_default_day_slot_form_is_valid(self):
-        form = DaySlotsForm(data={'selected_day': 1, 'selected_area' : 1, 'selected_stage' : 1})
+
+    def setUp(self):
+        super().setUp()
+        with connection.schema_editor() as schema_editor:
+            schema_editor.create_model(CapeTownPastStages)
+
+            if (
+                CapeTownPastStages._meta.db_table
+                not in connection.introspection.table_names()
+            ):
+                raise ValueError(
+                    "Table `{table_name}` is missing in test database.".format(
+                        table_name=CapeTownPastStages._meta.db_table
+                    )
+                )
+            
+        CapeTownPastStages.objects.create(date=datetime(2023,1,1),stage=1,start_time=time(0,0),end_time=time(23,59))
+        CapeTownPastStages.objects.create(date=datetime(2023,1,2),stage=1,start_time=time(0,0),end_time=time(23,59))
+        CapeTownPastStages.objects.create(date=datetime(2023,1,3),stage=1,start_time=time(0,0),end_time=time(23,59))
+
+    def tearDown(self):
+        super().tearDown()
+        with connection.schema_editor() as schema_editor:
+            schema_editor.delete_model(CapeTownPastStages)
+
+    def testStandardDaySlotFormIsValid(self):
+        form = DaySlotsForm(data={"selected_date": "2023-01-01","selected_area": "1",})
         self.assertTrue(form.is_valid())
 
+    def testDaySlotFormDateFieldCorrectlyFormat(self):
+        form_date = DaySlotsForm().fields['selected_date']
+        self.assertTrue(form_date.required)
+        self.assertTrue(isinstance(form_date.widget, DatePickerInput))
 
-    """Tests for Day Field on form"""
-    def test_day_slot_form_day_field_label(self):
-        form = DaySlotsForm()
-        self.assertTrue(form.fields['selected_day'].label is None or form.fields['selected_day'].label == 'selected day')
-
-    def test_day_slot_form_day_field_help_text(self):
-        form = DaySlotsForm()
-        self.assertEqual(form.fields['selected_day'].help_text, 'Enter the day of the month')
-
-    def test_day_slot_form_day_under_range(self):
-        form = DaySlotsForm(data={'selected_day': 0, 'selected_area' : 1, 'selected_stage' : 1})
+    def testDaySlotFormDateEarlierThanDBDates(self):
+        form = DaySlotsForm(data={"selected_date": "2022-12-31","selected_area": "1",})
         self.assertFalse(form.is_valid())
+        self.assertEqual(form.errors['selected_date'][0], 'No load-shedding stage information avaliable for selected date')
 
-    def test_day_slot_form_day_over_range(self):
-        form = DaySlotsForm(data={'selected_day': 32, 'selected_area' : 1, 'selected_stage' : 1})
+    def testDaySlotFormDateLaterThanDBDates(self):
+        form = DaySlotsForm(data={"selected_date": "2023-01-04","selected_area": "1",})
         self.assertFalse(form.is_valid())
+        self.assertEqual(form.errors['selected_date'][0], 'No load-shedding stage information avaliable for selected date')
 
+    def testDaySlotFormAreaCodeFieldCorrectlyFormat(self):
+        form_date = DaySlotsForm().fields['selected_area']
+        self.assertTrue(form_date.required)
+        self.assertEqual(form_date.label,"Enter your area code")
+        self.assertTrue(isinstance(form_date.widget, forms.NumberInput))
 
-    """Tests for Area Code Field on form"""
-    def test_day_slot_form_area_field_label(self):
-        form = DaySlotsForm()
-        self.assertTrue(form.fields['selected_area'].label is None or form.fields['selected_area'].label == 'selected area')
-
-    def test_day_slot_form_day_field_help_text(self):
-        form = DaySlotsForm()
-        self.assertEqual(form.fields['selected_area'].help_text, 'Enter your area code')
-
-    def test_day_slot_form_area_under_range(self):
-        form = DaySlotsForm(data={'selected_day': 1, 'selected_area' : 0, 'selected_stage' : 1})
+    def testDaySlotFormAreaCodeIntBelowAcceptable(self):
+        form = DaySlotsForm(data={"selected_date": "2023-01-01","selected_area": "0",})
         self.assertFalse(form.is_valid())
+        self.assertEqual(form.errors['selected_area'][0], 'Not a valid area code')
 
-    def test_day_slot_form_day_over_range(self):
-        form = DaySlotsForm(data={'selected_day': 1, 'selected_area' : 17, 'selected_stage' : 1})
+    def testDaySlotFormAreaCodeIntAboveAcceptable(self):
+        form = DaySlotsForm(data={"selected_date": "2023-01-01","selected_area": "17",})
         self.assertFalse(form.is_valid())
+        self.assertEqual(form.errors['selected_area'][0], 'Not a valid area code')
 
-    
-    """Tests for Day Field on form"""
-    def test_day_slot_form_stage_field_label(self):
-        form = DaySlotsForm()
-        self.assertTrue(form.fields['selected_stage'].label is None or form.fields['selected_stage'].label == 'selected stage')
-
-    def test_day_slot_form_stage_field_help_text(self):
-        form = DaySlotsForm()
-        self.assertEqual(form.fields['selected_stage'].help_text, 'Enter the loadshedding stage')
-
-    def test_day_slot_form_stage_under_range(self):
-        form = DaySlotsForm(data={'selected_day': 1, 'selected_area' : 1, 'selected_stage' : 0})
+    def testDaySlotFormAllInvalid(self):
+        form = DaySlotsForm(data={"selected_date": "2023-02-01","selected_area": "17",})
         self.assertFalse(form.is_valid())
-
-    def test_day_slot_form_stage_over_range(self):
-        form = DaySlotsForm(data={'selected_day': 1, 'selected_area' : 1, 'selected_stage' : 9})
-        self.assertFalse(form.is_valid())
-
+        self.assertEqual(form.errors['selected_date'][0], 'No load-shedding stage information avaliable for selected date')
+        self.assertEqual(form.errors['selected_area'][0], 'Not a valid area code')
+        self.assertEqual(len(form.errors), 2)
