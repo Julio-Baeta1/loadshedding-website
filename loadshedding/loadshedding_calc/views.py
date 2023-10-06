@@ -30,11 +30,11 @@ def selection(request):
                 form = DaySlotsFormLoggedIn(request.POST)
 
                 if form.is_valid():
-                    date = form.cleaned_data['selected_date']
+                    date = form.clean_selected_date()
             
-                request.session['c_date'] = date.strftime("%d-%m-%Y")
+                    request.session['c_date'] = date.strftime("%d-%m-%Y")
 
-                return HttpResponseRedirect(reverse('day-slots-logged-in'))
+                    return HttpResponseRedirect(reverse('day-slots-logged-in'))
 
             else:
                 form = DaySlotsFormLoggedIn(request.POST)
@@ -69,7 +69,9 @@ def selection(request):
 
         return render(request, 'loadshedding_calc/selection.html', context)
 
+###################################################################################################################################
 #Anonymous web user slots for day view
+
 def dayslots(request):
     """Displays load-shedding time slots for a given area based on date and load-shedding stage
         Currently uses cookies but might expand to be user specific"""
@@ -103,7 +105,9 @@ def dayslots(request):
 
     return render(request, "loadshedding_calc/day.html", context)
 
+###################################################################################################################################
 #Logged in web user slots for day view
+
 def dayslotsLoggedIn(request):
     """Displays load-shedding time slots for a given day based on logged in user's area code"""
      
@@ -134,6 +138,7 @@ def dayslotsLoggedIn(request):
                }
     return render(request, "loadshedding_calc/day.html", context)
     
+###################################################################################################################################
 ###################################################################################################################################
 #User profile views
 

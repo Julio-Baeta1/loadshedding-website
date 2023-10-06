@@ -12,6 +12,9 @@ class TimePickerInput(forms.TimeInput):
 class DatePickerInput(forms.DateInput):
         input_type = 'date'
 
+###################################################################################################################################
+#Anonymous web user slots for day form
+
 class DaySlotsForm(forms.Form):
     selected_date = forms.DateField(widget=DatePickerInput)
     selected_area = forms.IntegerField(label="Enter your area code")
@@ -36,7 +39,9 @@ class DaySlotsForm(forms.Form):
         
         return data_area
     
-    
+###################################################################################################################################    
+#Logged in web user slots for day Form
+
 class DaySlotsFormLoggedIn(forms.Form):
     
     selected_date = forms.DateField(widget=DatePickerInput)
@@ -44,12 +49,13 @@ class DaySlotsFormLoggedIn(forms.Form):
     def clean_selected_date(self):
         data_day = self.cleaned_data['selected_date']
         
-        #Must add further validation
-        if data_day.day < 1 or data_day.day > 31:   
-            raise ValidationError(_('Not a valid date'))
-        
+        if data_day < CapeTownPastStages.getEarliestDate(CapeTownPastStages) or data_day > CapeTownPastStages.getLatestDate(CapeTownPastStages):   
+            raise ValidationError(_('No load-shedding stage information avaliable for selected date'))
+
         return data_day
     
+###################################################################################################################################
+###################################################################################################################################
 
 class UserForm(forms.ModelForm):
     class Meta:
