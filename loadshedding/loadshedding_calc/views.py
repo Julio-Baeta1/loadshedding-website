@@ -10,7 +10,7 @@ from django.utils import timezone
 from django.template import loader
 from django.db import transaction
 
-from .models import CapeTownSlots, CapeTownPastStages, CapeTownAreas, Profile
+from .models import CapeTownSlots, CapeTownPastStages, CapeTownAreas, Profile, oneDaySlotsBetweenTimes
 from .forms import DaySlotsForm, DaySlotsFormLoggedIn, UserForm, ProfileForm
 
 def home(request):
@@ -81,23 +81,7 @@ def dayslots(request):
 
     s_start = datetime.time(0,0)
     s_end = datetime.time(23,59)
-    final_obj = CapeTownSlots.objects.none()
-
-    #day_stages gets all load-shedding stage values and time intervals that occur during user's selected day time allocations
-    day_stages = CapeTownPastStages.filterDateTimes(CapeTownPastStages ,s_date,s_start,s_end)
-
-    #final_obj contains all slots that user will experience loadshedding for their allocated day time hours
-    for obj in day_stages:
-        if(obj.start_time < s_start):
-            obj.start_time = s_start
-        if(obj.end_time > s_end):
-            obj.end_time = s_end
-        #Must fix data in db CapeTownPastStages to end on 23:59 instead of 00:00
-        if(obj.end_time == datetime.time(0,0)):
-            obj.end_time = datetime.time(23,59)
-        #temp_obj = CapeTownSlots.filterbyStageTimes(CapeTownSlots, s_date.day,s_area,obj.stage,s_start,s_end)
-        temp_obj = CapeTownSlots.filterbyStageTimes(CapeTownSlots, s_date.day,s_area,obj.stage,obj.start_time,obj.end_time)
-        final_obj = final_obj | temp_obj
+    final_obj = oneDaySlotsBetweenTimes(s_date,s_area,s_start,s_end)
 
     context = {"day_slots": final_obj,
                "date": s_date.strftime("%A %d %B %Y")
@@ -113,25 +97,11 @@ def dayslotsLoggedIn(request):
      
     u_date = datetime.datetime.strptime(request.session.get('c_date'), "%d-%m-%Y").date()
     u_area = request.user.profile.getUserArea()
-    final_obj = CapeTownSlots.objects.none()
 
     u_start = request.user.profile.getUserStartTime()
     u_end = request.user.profile.getUserEndTime()
-
-    #day_stages gets all load-shedding stage values and time intervals that occur during user's selected day time allocations
-    day_stages = CapeTownPastStages.filterDateTimes(CapeTownPastStages ,u_date,u_start,u_end)
-
-    #final_obj contains all slots that user will experience loadshedding for their allocated day time hours
-    for obj in day_stages:
-        if(obj.start_time < u_start):
-            obj.start_time = u_start
-        if(obj.end_time > u_end):
-            obj.end_time = u_end
-        if(obj.end_time == datetime.time(0,0)):
-            obj.end_time = datetime.time(23,59)
-        #temp_obj = CapeTownSlots.filterbyStageTimes(CapeTownSlots, u_date.day,u_area,obj.stage,u_start,u_end)
-        temp_obj = CapeTownSlots.filterbyStageTimes(CapeTownSlots, u_date.day,u_area,obj.stage,obj.start_time,obj.end_time)
-        final_obj = final_obj | temp_obj
+    
+    final_obj = oneDaySlotsBetweenTimes(u_date,u_area,u_start,u_end)
 
     context = {"day_slots": final_obj,
                "date": u_date.strftime("%A %d %B %Y")

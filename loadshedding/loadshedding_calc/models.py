@@ -5,6 +5,26 @@ from django.dispatch import receiver
 import datetime
 from django.db.models import Q
 
+###################################################################################################################################
+#Function to return queryset of load-shedding slots for given date, area code and between start and end times
+def oneDaySlotsBetweenTimes(date,area,start,end):
+    final_obj = CapeTownSlots.objects.none()
+    day_stages = CapeTownPastStages.filterDateTimes(CapeTownPastStages ,date,start,end)
+
+    for obj in day_stages:
+        if(obj.start_time < start):
+            obj.start_time = start
+        if(obj.end_time > end):
+            obj.end_time = end
+
+        if(obj.end_time == datetime.time(0,0)):
+            obj.end_time = datetime.time(23,59)
+
+        temp_obj = CapeTownSlots.filterbyStageTimes(CapeTownSlots, date.day,area,obj.stage,obj.start_time,obj.end_time)
+        final_obj = final_obj | temp_obj
+
+    return final_obj
+
 #######################################################################################################################################
 #Table to link Cape Town Area name to its appropriate Area code 
 class CapeTownAreas(models.Model):
