@@ -1,6 +1,6 @@
 import datetime
 
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseRedirect, HttpResponseBadRequest
 from django.shortcuts import get_object_or_404, render
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import login_required
@@ -106,6 +106,28 @@ def dayslotsLoggedIn(request):
     context = {"day_slots": final_obj,
                "date": u_date.strftime("%A %d %B %Y")
                }
+    return render(request, "loadshedding_calc/day.html", context)
+
+###################################################################################################################################
+def get_request_example(request):
+    #?area_code=5&date=02-05-2023
+
+    s_area = request.GET.get('area_code')
+    if s_area is None:
+        return HttpResponseBadRequest()
+    
+    s_date = datetime.datetime.strptime(request.GET.get('date'), "%d-%m-%Y").date()
+    if s_date is None:
+        return HttpResponseBadRequest()
+
+    s_start = datetime.time(0,0)
+    s_end = datetime.time(23,59)
+    final_obj = oneDaySlotsBetweenTimes(s_date,s_area,s_start,s_end)
+
+    context = {"day_slots": final_obj,
+               "date": s_date.strftime("%A %d %B %Y")
+               }
+
     return render(request, "loadshedding_calc/day.html", context)
     
 ###################################################################################################################################

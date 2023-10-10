@@ -1,4 +1,4 @@
-from django.urls import path
+from django.urls import path, re_path
 
 from . import views
 
@@ -11,6 +11,8 @@ urlpatterns = [
     path('one/', views.selection, name='one-slots'),
     path('day/', views.dayslots, name='day-slots'),
     path('profile/day/', views.dayslotsLoggedIn, name='day-slots-logged-in'),
+
+    path('get-request-example/', views.get_request_example, name='get_request_example'),
 ]
 
 
