@@ -1,6 +1,6 @@
 import datetime
 
-from django.http import HttpResponse, HttpResponseRedirect, HttpResponseBadRequest
+from django.http import HttpResponse, HttpResponseRedirect, HttpResponseBadRequest, HttpResponseNotFound
 from django.shortcuts import get_object_or_404, render
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import login_required
@@ -35,6 +35,7 @@ def selection(request):
                     request.session['c_date'] = date.strftime("%d-%m-%Y")
 
                     return HttpResponseRedirect(reverse('day-slots-logged-in'))
+                    #return HttpResponseRedirect(reverse('day-slots-logged-in')+f"?area_code={url_area}&date={url_date}")
 
             else:
                 form = DaySlotsFormLoggedIn(request.POST)
@@ -55,10 +56,10 @@ def selection(request):
                 date = form.clean_selected_date()
                 area = form.clean_selected_area()
 
-                request.session['c_date'] = date.strftime("%d-%m-%Y")
-                request.session['c_area'] = area
+                url_date = date.strftime("%d-%m-%Y")
+                url_area = area
 
-                return HttpResponseRedirect(reverse('day-slots'))
+                return HttpResponseRedirect(reverse('day-slots')+f"?area_code={url_area}&date={url_date}")
 
         else:
             form = DaySlotsForm(request.POST)
@@ -76,18 +77,42 @@ def dayslots(request):
     """Displays load-shedding time slots for a given area based on date and load-shedding stage
         Currently uses cookies but might expand to be user specific"""
     
-    s_area = request.session.get('c_area')
-    s_date = datetime.datetime.strptime(request.session.get('c_date'), "%d-%m-%Y").date()
+    area = request.GET.get('area_code')
+    date = request.GET.get('date')
 
-    s_start = datetime.time(0,0)
-    s_end = datetime.time(23,59)
-    final_obj = oneDaySlotsBetweenTimes(s_date,s_area,s_start,s_end)
+    #################
+    #Since uses url an extra layer of testing is required
+    #Test area code is valid
+    if area is None:
+        return render(request, "loadshedding_calc/invalid_day.html")
+    try:
+        area = int(area)
+    except ValueError:
+        return render(request, "loadshedding_calc/invalid_day.html")    
+    if area < 1 or area > 16:
+        return render(request, "loadshedding_calc/invalid_day.html")
+    
+    #Test date is valid 
+    if date is None:
+        return render(request, "loadshedding_calc/invalid_day.html") 
+    try:
+        date = datetime.datetime.strptime(date, "%d-%m-%Y").date()
+    except ValueError:
+        return render(request, "loadshedding_calc/invalid_day.html")
+    if date < CapeTownPastStages.getEarliestDate(CapeTownPastStages) or date > CapeTownPastStages.getLatestDate(CapeTownPastStages):   
+        return render(request, "loadshedding_calc/invalid_day.html")
+    #################
 
-    context = {"day_slots": final_obj,
-               "date": s_date.strftime("%A %d %B %Y")
-               }
+    #Get query set
+    final_obj = oneDaySlotsBetweenTimes(date,area,datetime.time(0,0),datetime.time(23,59))
+
+    context = {
+                "day_slots": final_obj,
+                "date": date.strftime("%A %d %B %Y")
+              }
 
     return render(request, "loadshedding_calc/day.html", context)
+
 
 ###################################################################################################################################
 #Logged in web user slots for day view
@@ -95,39 +120,17 @@ def dayslots(request):
 def dayslotsLoggedIn(request):
     """Displays load-shedding time slots for a given day based on logged in user's area code"""
      
-    u_date = datetime.datetime.strptime(request.session.get('c_date'), "%d-%m-%Y").date()
-    u_area = request.user.profile.getUserArea()
+    date = datetime.datetime.strptime(request.session.get('c_date'), "%d-%m-%Y").date()
+    area = request.user.profile.getUserArea()
 
-    u_start = request.user.profile.getUserStartTime()
-    u_end = request.user.profile.getUserEndTime()
+    start = request.user.profile.getUserStartTime()
+    end = request.user.profile.getUserEndTime()
     
-    final_obj = oneDaySlotsBetweenTimes(u_date,u_area,u_start,u_end)
+    final_obj = oneDaySlotsBetweenTimes(date,area,start,end)
 
     context = {"day_slots": final_obj,
-               "date": u_date.strftime("%A %d %B %Y")
+               "date": date.strftime("%A %d %B %Y")
                }
-    return render(request, "loadshedding_calc/day.html", context)
-
-###################################################################################################################################
-def get_request_example(request):
-    #?area_code=5&date=02-05-2023
-
-    s_area = request.GET.get('area_code')
-    if s_area is None:
-        return HttpResponseBadRequest()
-    
-    s_date = datetime.datetime.strptime(request.GET.get('date'), "%d-%m-%Y").date()
-    if s_date is None:
-        return HttpResponseBadRequest()
-
-    s_start = datetime.time(0,0)
-    s_end = datetime.time(23,59)
-    final_obj = oneDaySlotsBetweenTimes(s_date,s_area,s_start,s_end)
-
-    context = {"day_slots": final_obj,
-               "date": s_date.strftime("%A %d %B %Y")
-               }
-
     return render(request, "loadshedding_calc/day.html", context)
     
 ###################################################################################################################################
