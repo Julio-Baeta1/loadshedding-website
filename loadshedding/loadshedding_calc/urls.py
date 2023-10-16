@@ -9,8 +9,10 @@ urlpatterns = [
     path('profile/', views.UserProfileView.as_view(), name='user-profile'),
     path('profile/edit', views.edit_profile, name='edit-profile'),
     path('one/', views.selection, name='one-slots'),
-    path('day/', views.dayslots, name='day-slots'),
-    path('profile/day/', views.dayslotsLoggedIn, name='day-slots-logged-in'),
+    path('one-day/', views.dayslots, name='day-slots'),
+    #path('profile/day/', views.dayslotsLoggedIn, name='day-slots-logged-in'),
+    path('<str:username>/one-day/', views.dayslotsLoggedIn, name='day-slots-logged-in'),
+    
 ]
 
 
