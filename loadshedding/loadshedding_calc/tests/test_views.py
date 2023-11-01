@@ -41,7 +41,7 @@ class SlotsForDaySelectionViewTest(TestCase):
         self.assertTemplateUsed(response, 'base_generic.html')
 
 
-class SlotsForDaySelectionViewRedirectsTest(TestCase):
+class SlotsForDaySelectionViewFormsAndRedirectTest(TestCase):
 
     def setUp(self):
         super().setUp()
@@ -104,29 +104,121 @@ class SlotsForDaySelectionViewRedirectsTest(TestCase):
             schema_editor.delete_model(CapeTownPastStages)
             schema_editor.delete_model(CapeTownSlots)
 
+    #####Anon User
+    def testSlotsForDaySelectionViewAnonUserFormCorrect(self):
 
-    def testSlotsForDaySelectionViewAnonUserSubmitFormSuccess(self):
+        response = self.client.get(reverse('one-slots'), {}, True)
+        self.assertContains(response,"selected_date")
+        self.assertContains(response, "selected_area")
+        self.assertEqual(response.status_code, 200)
+
+    def testSlotsForDaySelectionViewAnonUserSubmitFormSuccessRedirects(self):
 
         response = self.client.get(reverse('one-slots'), {}, True)
         data = {
             "selected_date": "2023-01-01",
             "selected_area": "1",
         }
-        self.assertContains(response,"selected_date")
-        self.assertContains(response, "selected_area")
         response = self.client.post('/loadshedding_calc/one/',data)
+
+        self.assertEqual(response.status_code, 302)
         self.assertRedirects(response, '/loadshedding_calc/one-day/?area_code=1&date=01-01-2023')
 
-    def testSlotsForDaySelectionViewLoggedInUserSubmitFormSuccess(self):
+    def testSlotsForDaySelectionViewAnonUserFutureDateNoData(self):
+
+        response = self.client.get(reverse('one-slots'), {}, True)
+        data = {
+            "selected_date": "2023-11-01",
+            "selected_area": "1",
+        }
+        response = self.client.post('/loadshedding_calc/one/',data)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFormError(response.context['form'], 'selected_date', 'No load-shedding stage information avaliable for selected date')
+
+    def testSlotsForDaySelectionViewAnonUserPastDateNoData(self):
+
+        response = self.client.get(reverse('one-slots'), {}, True)
+        data = {
+            "selected_date": "2022-01-01",
+            "selected_area": "1",
+        }
+        response = self.client.post('/loadshedding_calc/one/',data)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFormError(response.context['form'], 'selected_date', 'No load-shedding stage information avaliable for selected date')
+
+
+    def testSlotsForDaySelectionViewAnonUserTooLowAreaCode(self):
+
+        response = self.client.get(reverse('one-slots'), {}, True)
+        data = {
+            "selected_date": "2023-01-01",
+            "selected_area": "0",
+        }
+        response = self.client.post('/loadshedding_calc/one/',data)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFormError(response.context['form'], 'selected_area', 'Not a valid area code')
+
+    def testSlotsForDaySelectionViewAnonUserTooHighAreaCode(self):
+
+        response = self.client.get(reverse('one-slots'), {}, True)
+        data = {
+            "selected_date": "2023-01-01",
+            "selected_area": "21",
+        }
+        response = self.client.post('/loadshedding_calc/one/',data)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFormError(response.context['form'], 'selected_area', 'Not a valid area code')
+
+    ####Logged in User
+    def testSlotsForDaySelectionViewLoggedInUserFormCorrect(self):
+
+        self.client.login(username='testuser', password='12345')
+        response = self.client.get(reverse('one-slots'), {}, True)
+        self.assertContains(response,"selected_date")
+        self.assertNotContains(response, "selected_area")
+        self.assertEqual(response.status_code, 200)
+
+    def testSlotsForDaySelectionViewLoggedInUserSubmitFormSuccessRedirects(self):
 
         self.client.login(username='testuser', password='12345')
         response = self.client.get(reverse('one-slots'), {}, True)
         data = {
             "selected_date": "2023-01-01",
         }
-        self.assertContains(response,"selected_date")
         response = self.client.post('/loadshedding_calc/one/',data)
+
+        self.assertEqual(response.status_code, 302)
         self.assertRedirects(response, '/loadshedding_calc/testuser/one-day/?date=01-01-2023')
+
+    def testSlotsForDaySelectionViewLoggedInUserFutureDateNoData(self):
+
+        self.client.login(username='testuser', password='12345')
+        response = self.client.get(reverse('one-slots'), {}, True)
+        data = {
+            "selected_date": "2023-11-01",
+        }
+        response = self.client.post('/loadshedding_calc/one/',data)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFormError(response.context['form'], 'selected_date', 'No load-shedding stage information avaliable for selected date')
+
+    def testSlotsForDaySelectionViewLoggedInUserPastDateNoData(self):
+
+        self.client.login(username='testuser', password='12345')
+        response = self.client.get(reverse('one-slots'), {}, True)
+        data = {
+            "selected_date": "2022-01-01",
+        }
+        response = self.client.post('/loadshedding_calc/one/',data)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFormError(response.context['form'], 'selected_date', 'No load-shedding stage information avaliable for selected date')
+
+
 
 ###################################################################################################################################
 
