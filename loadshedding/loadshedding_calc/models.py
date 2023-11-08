@@ -36,6 +36,56 @@ class CapeTownAreas(models.Model):
         return self.area_name + " is in area code: " + str(self.area_code)
     
 #######################################################################################################################################
+#Table of time slots/intervals for which load-shedding occured given the Cape Town area code and date 
+
+class CapeTownPastSlots(models.Model):
+    past_slot_id = models.AutoField(primary_key=True)
+    date = models.DateField()
+    area_code = models.SmallIntegerField()
+    start_time = models.TimeField()
+    end_time = models.TimeField()
+
+    def populateSlotsForDateArea(self,date,area):
+        slots = CapeTownSlots.objects.none()
+        day_stages = CapeTownPastStages.filterDateTimes(CapeTownPastStages ,date,datetime.time(0,0),datetime.time(23,59))
+
+        for obj in day_stages:
+            temp_obj = CapeTownSlots.filterbyStageTimes(CapeTownSlots, date.day,area,obj.stage,obj.start_time,obj.end_time)
+            slots = slots | temp_obj
+
+        for slot in slots:
+           s_time = slot.start_time
+           e_time = slot.end_time
+
+           for stage in day_stages:
+               if stage.start_time > slot.start_time and stage.start_time < slot.end_time :
+                   s_time = stage.start_time
+
+               if stage.end_time > slot.start_time and stage.end_time < slot.end_time :
+                   e_time = stage.end_time
+            
+           self.objects.create(date=date, area_code=area, start_time=s_time, end_time=e_time)
+
+    def populateAll(self):
+        min_date = self.getLatestDate(self)
+        #Assume that no new dates will be earlier than latest current date
+        if not min_date:
+            min_date = CapeTownPastStages.getEarliestDate(CapeTownPastStages)
+     
+        max_date = CapeTownPastStages.getLatestDate(CapeTownPastStages)
+        n_days = int( (max_date-min_date).days )
+        max_area = 16
+        
+        for d in range(n_days):
+            for a in range(1,max_area):
+                self.populateSlotsForDateArea(self,min_date+datetime.timedelta(d),a)
+            
+           
+    def __str__(self):
+        
+        return "For date: " + str(self.date) + " and area code: " + str(self.area_code) + " Load-shedding slot "+self.start_time.strftime('%H:%M')+"-"+self.end_time.strftime('%H:%M')
+    
+#######################################################################################################################################
 # Table of Day of month with all its loadshedding slots given by start_time and end_time.
 # Each respective stage column contains an area code for each slot and is read as:
 #               if the load-shedding stage is 4 then all area codes in the columns stage1 -> stage4 will recieve loadshedding for that slot
