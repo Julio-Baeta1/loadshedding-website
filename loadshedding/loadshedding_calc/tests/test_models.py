@@ -1,9 +1,11 @@
 #import unittest
 from django.test import TestCase
-from loadshedding_calc.models import CapeTownSlots, CapeTownPastStages
+from loadshedding_calc.models import CapeTownSlots, CapeTownPastStages, CapeTownPastSlots
 from django.db.models import Q
 from datetime import datetime, time
 from django.db import connection
+from django.core import serializers
+import json
 
 ###################################################################################################################################
 ###################################################################################################################################
@@ -333,3 +335,130 @@ class CapeTownPastStagesFilterDateTimesTest(TestCase):
         t_set = CapeTownPastStages.filterDateTimes(CapeTownPastStages,t_date,t_start,t_end)
         exp_set = CapeTownPastStages.objects.filter(Q(past_stage_id=2) | Q(past_stage_id=3))
         self.assertEqual(list(t_set), list(exp_set))
+
+###################################################################################################################################
+###################################################################################################################################
+
+##Fix once serialiser added
+class CapeTownPastSlotsPopulateTest(TestCase):
+
+    def setUp(self):
+        super().setUp()
+        with connection.schema_editor() as schema_editor:
+            schema_editor.create_model(CapeTownPastStages)
+
+            if (
+                CapeTownPastStages._meta.db_table
+                not in connection.introspection.table_names()
+            ):
+                raise ValueError(
+                    "Table `{table_name}` is missing in test database.".format(
+                        table_name=CapeTownPastStages._meta.db_table
+                    )
+                )
+            
+            schema_editor.create_model(CapeTownSlots)
+
+            if (
+                CapeTownSlots._meta.db_table
+                not in connection.introspection.table_names()
+            ):
+                raise ValueError(
+                    "Table `{table_name}` is missing in test database.".format(
+                        table_name=CapeTownPastStages._meta.db_table
+                    )
+                )
+            
+        CapeTownPastStages.objects.create(date=datetime(2023,1,1),stage=1,start_time=time(0,0),end_time=time(23,59))
+        CapeTownPastStages.objects.create(date=datetime(2023,1,2),stage=4,start_time=time(0,0),end_time=time(8,0))
+        CapeTownPastStages.objects.create(date=datetime(2023,1,2),stage=2,start_time=time(8,0),end_time=time(16,0))
+        CapeTownPastStages.objects.create(date=datetime(2023,1,2),stage=4,start_time=time(16,0),end_time=time(23,59))
+        CapeTownPastStages.objects.create(date=datetime(2023,1,3),stage=3,start_time=time(0,0),end_time=time(13,0))
+        CapeTownPastStages.objects.create(date=datetime(2023,1,3),stage=5,start_time=time(13,0),end_time=time(23,59))
+        CapeTownPastStages.objects.create(date=datetime(2023,1,4),stage=5,start_time=time(0,0),end_time=time(13,0))
+        CapeTownPastStages.objects.create(date=datetime(2023,1,4),stage=3,start_time=time(13,0),end_time=time(23,59))
+
+        for t_day in range(1,5):
+            t1 = 0
+            t2 = 2  
+            t_stages = [1,9,13,5,2,10,14,6]
+
+            for x in range(11):
+                CapeTownSlots.objects.create(day=t_day,start_time=time(t1,0),end_time=time(t2,0),stage1=t_stages[0], stage2=t_stages[1], stage3=t_stages[2], stage4=t_stages[3],stage5=t_stages[4], stage6=t_stages[5], stage7=t_stages[6], stage8=t_stages[7])
+                t_stages = [x%16+1 for x in t_stages]
+                t1 += 2
+                t2 += 2
+
+            CapeTownSlots.objects.create(day=t_day,start_time=time(22,0),end_time=time(23,59),stage1=t_stages[0], stage2=t_stages[1], stage3=t_stages[2], stage4=t_stages[3],stage5=t_stages[4], stage6=t_stages[5], stage7=t_stages[6], stage8=t_stages[7])
+            
+
+    def tearDown(self):
+        super().tearDown()
+        with connection.schema_editor() as schema_editor:
+            schema_editor.delete_model(CapeTownPastStages)
+            schema_editor.delete_model(CapeTownSlots)
+
+    def testCapeTownPastSlotsPopulateOne(self):
+        CapeTownPastSlots.populateSlotsForDateArea(CapeTownPastSlots,datetime(2023,1,1),1)
+
+        raw_data = serializers.serialize('python', CapeTownPastSlots.objects.filter(date=datetime(2023,1,1)))
+        qs = [d['fields'] for d in raw_data]
+
+        expected = [{"date": datetime(2023, 1, 1).date(),"area_code": 1, "start_time":time(0, 0), "end_time":time(2, 0)}] 
+
+        self.assertEqual(qs,expected)
+
+    def testCapeTownPastSlotsPopulateMultiple(self):
+        CapeTownPastSlots.populateSlotsForDateArea(CapeTownPastSlots,datetime(2023,1,2),13)
+
+        raw_data = serializers.serialize('python', CapeTownPastSlots.objects.filter(date=datetime(2023,1,2)))
+        qs = [d['fields'] for d in raw_data]
+
+        expected = [{"date": datetime(2023, 1, 2).date(),"area_code": 13, "start_time":time(0, 0), "end_time":time(2, 0)},
+                    {"date": datetime(2023, 1, 2).date(),"area_code": 13, "start_time":time(8, 0), "end_time":time(10, 0)},
+                    {"date": datetime(2023, 1, 2).date(),"area_code": 13, "start_time":time(16, 0), "end_time":time(18, 0)}] 
+        self.assertEqual(qs,expected)
+
+    def testCapeTownPastSlotsPopulateStageFromLowerToHigherChangeMidInterval(self):
+        CapeTownPastSlots.populateSlotsForDateArea(CapeTownPastSlots,datetime(2023,1,3),8)
+
+        raw_data = serializers.serialize('python', CapeTownPastSlots.objects.filter(date=datetime(2023,1,3)))
+        qs = [d['fields'] for d in raw_data]
+        #print(qs)
+
+        expected = [{"date": datetime(2023, 1, 3).date(),"area_code": 8, "start_time":time(13, 0), "end_time":time(14, 0)},
+                    {"date": datetime(2023, 1, 3).date(),"area_code": 8, "start_time":time(14, 0), "end_time":time(16, 0)},
+                    {"date": datetime(2023, 1, 3).date(),"area_code": 8, "start_time":time(22, 0), "end_time":time(23, 59)}] 
+        self.assertEqual(qs,expected)
+        #self.assertEqual(1+1,2)
+
+    def testCapeTownPastSlotsPopulateStageFromHigherToLowerChangeMidInterval(self):
+        CapeTownPastSlots.populateSlotsForDateArea(CapeTownPastSlots,datetime(2023,1,4),11)
+
+        raw_data = serializers.serialize('python', CapeTownPastSlots.objects.filter(date=datetime(2023,1,4),area_code=11))
+        qs = [d['fields'] for d in raw_data]
+        #print(qs)
+
+        expected = [{"date": datetime(2023, 1, 4).date(),"area_code": 11, "start_time":time(4, 0), "end_time":time(6, 0)},
+                    {"date": datetime(2023, 1, 4).date(),"area_code": 11, "start_time":time(12, 0), "end_time":time(13, 0)},
+                    {"date": datetime(2023, 1, 4).date(),"area_code": 11, "start_time":time(20, 0), "end_time":time(22, 0)}] 
+        self.assertEqual(qs,expected)
+        #self.assertEqual(1+1,2)
+
+    #def testCapeTownPastSlotsPopulateStageFromHigherToLowerChangeMidIntervalNotChange(self):
+    #    CapeTownPastSlots.populateSlotsForDateArea(CapeTownPastSlots,datetime(2023,1,4),7)
+
+    #    raw_data = serializers.serialize('python', CapeTownPastSlots.objects.filter(date=datetime(2023,1,4),area_code=7))
+    #    qs = [d['fields'] for d in raw_data]
+    #    print(qs)
+
+    #    expected = [{"date": datetime(2023, 1, 4).date(),"area_code": 7, "start_time":time(4, 0), "end_time":time(6, 0)},
+    #                {"date": datetime(2023, 1, 4).date(),"area_code": 7, "start_time":time(10, 0), "end_time":time(12, 0)},
+    #                {"date": datetime(2023, 1, 4).date(),"area_code": 7, "start_time":time(12, 0), "end_time":time(14, 0)},
+    #                {"date": datetime(2023, 1, 4).date(),"area_code": 7, "start_time":time(20, 0), "end_time":time(22, 0)}] 
+        #self.assertEqual(qs,expected)
+    #    self.assertEqual(1+1,2)
+
+
+
+    

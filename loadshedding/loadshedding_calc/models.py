@@ -54,17 +54,53 @@ class CapeTownPastSlots(models.Model):
             slots = slots | temp_obj
 
         for slot in slots:
-           s_time = slot.start_time
-           e_time = slot.end_time
+            s_time = slot.start_time
+            e_time = slot.end_time
+            flag = False
 
-           for stage in day_stages:
-               if stage.start_time > slot.start_time and stage.start_time < slot.end_time :
-                   s_time = stage.start_time
+            for i in range(len(day_stages)):
 
-               if stage.end_time > slot.start_time and stage.end_time < slot.end_time :
-                   e_time = stage.end_time
+                #Currently Assume that only the start or end time change as interval length 2 hours can only have one hour different
+                #in the centre so it must either be start or end.
+                # Incorrectly changes for stages lower than changing stages must fix 
+                if i < len(day_stages)-1:
+                    if day_stages[i].stage < day_stages[i+1].stage:
+                        if day_stages[i].end_time > slot.start_time and day_stages[i].end_time < slot.end_time and flag==False :
+                            s_time = day_stages[i].end_time
+                            flag=True
+
+                    elif day_stages[i].stage > day_stages[i+1].stage:
+                        if day_stages[i].start_time > slot.start_time and day_stages[i].start_time < slot.end_time and flag==False:
+                            e_time = day_stages[i].start_time
+                            flag=True
+
+                else:
+                    if day_stages[i].start_time > slot.start_time and day_stages[i].start_time < slot.end_time and flag==False:
+                        e_time = day_stages[i].start_time
+                        flag=True
+                    elif day_stages[i].end_time > slot.start_time and day_stages[i].end_time < slot.end_time and flag==False:
+                        e_time = day_stages[i].start_time
+                        flag=True
+                
+
+            self.objects.create(date=date, area_code=area, start_time=s_time, end_time=e_time)
+
+        #for slot in slots:
+        #   s_time = slot.start_time
+        #   e_time = slot.end_time
+        #   print(f"New Slot start={s_time} end={e_time}")
+
+        #   for stage in day_stages:
+        #       print(f"start={stage.start_time} end={stage.end_time}")
+        #       if stage.start_time > slot.start_time and stage.start_time < slot.end_time :
+        #           s_time = stage.start_time
+        #           print("change start")
+
+        #       elif stage.end_time > slot.start_time and stage.end_time < slot.end_time :
+        #           e_time = stage.end_time
+        #           print("change end")
             
-           self.objects.create(date=date, area_code=area, start_time=s_time, end_time=e_time)
+        #   self.objects.create(date=date, area_code=area, start_time=s_time, end_time=e_time)
 
     def populateAll(self):
         min_date = self.getLatestDate(self)
@@ -74,7 +110,7 @@ class CapeTownPastSlots(models.Model):
      
         max_date = CapeTownPastStages.getLatestDate(CapeTownPastStages)
         n_days = int( (max_date-min_date).days )
-        max_area = 16
+        max_area = 16+1
         
         for d in range(n_days):
             for a in range(1,max_area):
