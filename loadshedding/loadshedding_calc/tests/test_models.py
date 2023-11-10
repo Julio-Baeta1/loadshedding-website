@@ -9,6 +9,7 @@ import json
 
 ###################################################################################################################################
 ###################################################################################################################################
+# Model: CapeTownSlots 
 
 class CapeTownSlotsStageQueryTest(TestCase):
 
@@ -38,6 +39,7 @@ class CapeTownSlotsStageQueryTest(TestCase):
         self.assertEqual(t_query, None)
 
 ###################################################################################################################################
+# Model: CapeTownSlots 
 
 class CapeTownSlotsCleanDatesTest(TestCase):
 
@@ -98,6 +100,7 @@ class CapeTownSlotsCleanDatesTest(TestCase):
         self.assertEqual(test_2, e2)
 
 ###################################################################################################################################
+# Model: CapeTownSlots 
 
 class CapeTownSlotsFilterByStageTimesTest(TestCase):
 
@@ -224,9 +227,9 @@ class CapeTownSlotsFilterByStageTimesTest(TestCase):
         exp_set = CapeTownSlots.objects.none()
         self.assertEqual(list(t_set), list(exp_set))
 
-
 ###################################################################################################################################
 ###################################################################################################################################
+#model: CapeTownPastStages
 
 class CapeTownPastStagesFilterDateTimesTest(TestCase):
 

@@ -207,6 +207,60 @@ class CapeTownSlots(models.Model):
 
         return day_slots
     
+    def mutuallyExclusiveAreaList(self,day,start,end,s1,s2):
+
+        if s1 > s2:
+            raise ValueError(f"Invalid stage pair, {s1} must not be greater than {s2}")
+
+        slot_areas = self.objects.filter(day=day,start_time=start,end_time=end).get() #.get() returns an object and not QuerySet
+        if slot_areas is None:
+            raise ValueError(f"No entry for day={day} bewteen times {s1} and {s2}.")
+
+        area_list =[]
+
+        if s1 < 1 and s2 > 0:
+            area_list += [slot_areas.stage1]
+        if s1 < 2 and s2 > 1:
+            area_list += [slot_areas.stage2]
+        if s1 < 3 and s2 > 2:
+            area_list += [slot_areas.stage3]
+        if s1 < 4 and s2 > 3:
+            area_list += [slot_areas.stage4]
+        if s1 < 5 and s2 > 4:
+            area_list += [slot_areas.stage5]
+        if s1 < 6 and s2 > 5:
+            area_list += [slot_areas.stage6]
+        if s1 < 7 and s2 > 6:
+            area_list += [slot_areas.stage7]
+        if s1 < 8 and s2 > 7:
+            area_list += [slot_areas.stage8]
+
+        return area_list
+
+    
+    def DiffStageSets(self,day,start,end,s1,s2):
+        if s1 < 0 or s1 > 8:
+            raise ValueError(f"Invalid first stage argument: {s1}, must not be negative of greater than 8")
+        if s2 < 0 or s2 > 8:
+            raise ValueError(f"Invalid second stage argument: {s2}, must not be negative of greater than 8")
+        
+        if s1 < s2:
+            return self.mutuallyExclusiveAreaList(day,start,end,s1,s2)
+
+        if s2 < s1:
+            return self.mutuallyExclusiveAreaList(day,start,end,s2,s1)
+        
+        return None
+    
+    def areaIsMutuallyExclusive(self,day,start,end,s1,s2,area):
+        mut_ex_list = self.DiffStageSets(day,start,end,s1,s2)
+
+        if area in mut_ex_list:
+            return True
+        
+        return False
+
+    
     def __str__(self):
         return str(self.day)+" = "+self.start_time.strftime('%H:%M')+"-"+self.end_time.strftime('%H:%M')
     
