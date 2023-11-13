@@ -228,6 +228,152 @@ class CapeTownSlotsFilterByStageTimesTest(TestCase):
         self.assertEqual(list(t_set), list(exp_set))
 
 ###################################################################################################################################
+# Model: CapeTownSlots 
+
+class CapeTownSlotsAreaCodesFromRowTest(TestCase):
+
+    def setUp(self):
+        super().setUp()
+        with connection.schema_editor() as schema_editor:
+            schema_editor.create_model(CapeTownSlots)
+
+            if (
+                CapeTownSlots._meta.db_table
+                not in connection.introspection.table_names()
+            ):
+                raise ValueError(
+                    "Table `{table_name}` is missing in test database.".format(
+                        table_name=CapeTownPastStages._meta.db_table
+                    )
+                )
+        t_stages = [1,9,13,5,2,10,14,6] 
+        CapeTownSlots.objects.create(day=1,start_time=time(0,0),end_time=time(2,0),stage1=t_stages[0], stage2=t_stages[1], stage3=t_stages[2], stage4=t_stages[3],stage5=t_stages[4], stage6=t_stages[5], stage7=t_stages[6], stage8=t_stages[7])
+
+
+    def tearDown(self):
+        super().tearDown()
+        with connection.schema_editor() as schema_editor:
+            schema_editor.delete_model(CapeTownSlots)
+
+    def testmutuallyExclusiveAreaListStage1AndStage2(self):
+        s1= 1
+        s2= 2
+        t_list = CapeTownSlots.mutuallyExclusiveAreaList(CapeTownSlots,1,time(0,0),time(2,0),s1,s2)
+        exp_list = [9]
+        self.assertEqual(t_list, exp_list)
+
+    def testmutuallyExclusiveAreaListStage0AndStage8(self):
+        s1=0
+        s2=8
+        t_list = CapeTownSlots.mutuallyExclusiveAreaList(CapeTownSlots,1,time(0,0),time(2,0),s1,s2)
+        exp_list = [1,9,13,5,2,10,14,6]
+        self.assertEqual(t_list, exp_list)
+
+    def testmutuallyExclusiveAreaListS1GtS2Error(self):
+        s1=2
+        s2=0
+        err_msg = "Invalid stage pair, s1(2) must not be greater than s2(0)."
+        with self.assertRaisesMessage(ValueError, err_msg):
+            CapeTownSlots.mutuallyExclusiveAreaList(CapeTownSlots,1,time(0,0),time(2,0),s1,s2)
+
+    def testmutuallyExclusiveAreaListNoDBEntryError(self):
+        s1=0
+        s2=2
+        day = 1
+        start = time(0,0)
+        end = time(2,30)
+        err_msg = f"No entry for day={day} bewteen times {start} and {end}."
+        with self.assertRaisesMessage(ValueError, err_msg):
+            CapeTownSlots.mutuallyExclusiveAreaList(CapeTownSlots,day,start,end,s1,s2)
+
+    def testDiffStageSetsS1LtS2Success(self):
+        s1=1
+        s2=4
+        t_list = CapeTownSlots.DiffStageSets(CapeTownSlots,1,time(0,0),time(2,0),s1,s2)
+        exp_list = [9,13,5]
+        self.assertEqual(t_list, exp_list)
+
+    def testDiffStageSetsS1GtS2Success(self):
+        s1=1
+        s2=4
+        t_list = CapeTownSlots.DiffStageSets(CapeTownSlots,1,time(0,0),time(2,0),s2,s1)
+        exp_list = [9,13,5]
+        self.assertEqual(t_list, exp_list)
+
+    def testDiffStageSetsS1EqS2Success(self):
+        s1=1
+        s2=4
+        t_list = CapeTownSlots.DiffStageSets(CapeTownSlots,1,time(0,0),time(2,0),s1,s1)
+        exp_list = []
+        self.assertEqual(t_list, exp_list)
+
+    def testDiffStageSetsS1Lt0(self):
+        s1=-1
+        s2=4
+        err_msg = f"Invalid first stage argument: {s1}, must not be negative or greater than 8"
+        with self.assertRaisesMessage(ValueError, err_msg):
+            CapeTownSlots.DiffStageSets(CapeTownSlots,1,time(0,0),time(2,0),s1,s2)
+
+    def testDiffStageSetsS1Gt8(self):
+        s1=9
+        s2=4
+        err_msg = f"Invalid first stage argument: {s1}, must not be negative or greater than 8"
+        with self.assertRaisesMessage(ValueError, err_msg):
+            CapeTownSlots.DiffStageSets(CapeTownSlots,1,time(0,0),time(2,0),s1,s2)
+
+    def testDiffStageSetsS2Lt0(self):
+        s1=1
+        s2=-5
+        err_msg = f"Invalid second stage argument: {s2}, must not be negative or greater than 8"
+        with self.assertRaisesMessage(ValueError, err_msg):
+            CapeTownSlots.DiffStageSets(CapeTownSlots,1,time(0,0),time(2,0),s1,s2)
+
+    def testDiffStageSetsS2Gt8(self):
+        s1=2
+        s2=15
+        err_msg = f"Invalid second stage argument: {s2}, must not be negative or greater than 8"
+        with self.assertRaisesMessage(ValueError, err_msg):
+            CapeTownSlots.DiffStageSets(CapeTownSlots,1,time(0,0),time(2,0),s1,s2)
+
+    def testAreaIsMutuallyExclusiveStage4Stage6True(self):
+        s1 = 4
+        s2 = 6
+        #[1,9,13,5,2,10,14,6] 
+        area = 10
+        self.assertTrue(CapeTownSlots.areaIsMutuallyExclusive(CapeTownSlots,1,time(0,0),time(2,0),s1,s2,area))
+
+    def testAreaIsMutuallyExclusiveStage4Stage6AreaInLowerStage(self):
+        s1 = 4
+        s2 = 6
+        #[1,9,13,5,2,10,14,6] 
+        area = 1
+        self.assertFalse(CapeTownSlots.areaIsMutuallyExclusive(CapeTownSlots,1,time(0,0),time(2,0),s1,s2,area))
+
+    def testAreaIsMutuallyExclusiveStage4Stage6AreaInHigherStage(self):
+        s1 = 4
+        s2 = 6
+        #[1,9,13,5,2,10,14,6] 
+        area = 14
+        self.assertFalse(CapeTownSlots.areaIsMutuallyExclusive(CapeTownSlots,1,time(0,0),time(2,0),s1,s2,area))
+
+    def testAreaIsMutuallyExclusiveStage4Stage6AreaNotPresentInSlot(self):
+        s1 = 4
+        s2 = 6
+        #[1,9,13,5,2,10,14,6] 
+        area = 3
+        self.assertFalse(CapeTownSlots.areaIsMutuallyExclusive(CapeTownSlots,1,time(0,0),time(2,0),s1,s2,area))
+
+    def testAreaIsMutuallyExclusiveStage4Stage4NoExclusiveSet(self):
+        s1 = 4
+        s2 = 4
+        #[1,9,13,5,2,10,14,6] 
+        area = 1
+        self.assertFalse(CapeTownSlots.areaIsMutuallyExclusive(CapeTownSlots,1,time(0,0),time(2,0),s1,s2,area))
+
+        
+
+
+###################################################################################################################################
 ###################################################################################################################################
 #model: CapeTownPastStages
 

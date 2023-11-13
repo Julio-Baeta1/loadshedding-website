@@ -210,12 +210,13 @@ class CapeTownSlots(models.Model):
     def mutuallyExclusiveAreaList(self,day,start,end,s1,s2):
 
         if s1 > s2:
-            raise ValueError(f"Invalid stage pair, {s1} must not be greater than {s2}")
-
-        slot_areas = self.objects.filter(day=day,start_time=start,end_time=end).get() #.get() returns an object and not QuerySet
-        if slot_areas is None:
-            raise ValueError(f"No entry for day={day} bewteen times {s1} and {s2}.")
-
+            raise ValueError(f"Invalid stage pair, s1({s1}) must not be greater than s2({s2}).")
+        
+        try:
+            slot_areas = self.objects.filter(day=day,start_time=start,end_time=end).get() #.get() returns an object and not QuerySet
+        except:
+            raise ValueError(f"No entry for day={day} bewteen times {start} and {end}.")
+            
         area_list =[]
 
         if s1 < 1 and s2 > 0:
@@ -240,20 +241,20 @@ class CapeTownSlots(models.Model):
     
     def DiffStageSets(self,day,start,end,s1,s2):
         if s1 < 0 or s1 > 8:
-            raise ValueError(f"Invalid first stage argument: {s1}, must not be negative of greater than 8")
+            raise ValueError(f"Invalid first stage argument: {s1}, must not be negative or greater than 8")
         if s2 < 0 or s2 > 8:
-            raise ValueError(f"Invalid second stage argument: {s2}, must not be negative of greater than 8")
+            raise ValueError(f"Invalid second stage argument: {s2}, must not be negative or greater than 8")
         
         if s1 < s2:
-            return self.mutuallyExclusiveAreaList(day,start,end,s1,s2)
+            return self.mutuallyExclusiveAreaList(self,day,start,end,s1,s2)
 
-        if s2 < s1:
-            return self.mutuallyExclusiveAreaList(day,start,end,s2,s1)
+        if s1 > s2:
+            return self.mutuallyExclusiveAreaList(self,day,start,end,s2,s1)
         
-        return None
+        return []
     
     def areaIsMutuallyExclusive(self,day,start,end,s1,s2,area):
-        mut_ex_list = self.DiffStageSets(day,start,end,s1,s2)
+        mut_ex_list = self.DiffStageSets(self,day,start,end,s1,s2)
 
         if area in mut_ex_list:
             return True
