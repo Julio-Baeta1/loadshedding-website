@@ -36,92 +36,6 @@ class CapeTownAreas(models.Model):
         return self.area_name + " is in area code: " + str(self.area_code)
     
 #######################################################################################################################################
-#Table of time slots/intervals for which load-shedding occured given the Cape Town area code and date 
-
-class CapeTownPastSlots(models.Model):
-    past_slot_id = models.AutoField(primary_key=True)
-    date = models.DateField()
-    area_code = models.SmallIntegerField()
-    start_time = models.TimeField()
-    end_time = models.TimeField()
-
-    def populateSlotsForDateArea(self,date,area):
-        slots = CapeTownSlots.objects.none()
-        day_stages = CapeTownPastStages.filterDateTimes(CapeTownPastStages ,date,datetime.time(0,0),datetime.time(23,59))
-
-        for obj in day_stages:
-            temp_obj = CapeTownSlots.filterbyStageTimes(CapeTownSlots, date.day,area,obj.stage,obj.start_time,obj.end_time)
-            slots = slots | temp_obj
-
-        for slot in slots:
-            s_time = slot.start_time
-            e_time = slot.end_time
-            flag = False
-
-            for i in range(len(day_stages)):
-
-                #Currently Assume that only the start or end time change as interval length 2 hours can only have one hour different
-                #in the centre so it must either be start or end.
-                # Incorrectly changes for stages lower than changing stages must fix 
-                if i < len(day_stages)-1:
-                    if day_stages[i].stage < day_stages[i+1].stage:
-                        if day_stages[i].end_time > slot.start_time and day_stages[i].end_time < slot.end_time and flag==False :
-                            s_time = day_stages[i].end_time
-                            flag=True
-
-                    elif day_stages[i].stage > day_stages[i+1].stage:
-                        if day_stages[i].start_time > slot.start_time and day_stages[i].start_time < slot.end_time and flag==False:
-                            e_time = day_stages[i].start_time
-                            flag=True
-
-                else:
-                    if day_stages[i].start_time > slot.start_time and day_stages[i].start_time < slot.end_time and flag==False:
-                        e_time = day_stages[i].start_time
-                        flag=True
-                    elif day_stages[i].end_time > slot.start_time and day_stages[i].end_time < slot.end_time and flag==False:
-                        e_time = day_stages[i].start_time
-                        flag=True
-                
-
-            self.objects.create(date=date, area_code=area, start_time=s_time, end_time=e_time)
-
-        #for slot in slots:
-        #   s_time = slot.start_time
-        #   e_time = slot.end_time
-        #   print(f"New Slot start={s_time} end={e_time}")
-
-        #   for stage in day_stages:
-        #       print(f"start={stage.start_time} end={stage.end_time}")
-        #       if stage.start_time > slot.start_time and stage.start_time < slot.end_time :
-        #           s_time = stage.start_time
-        #           print("change start")
-
-        #       elif stage.end_time > slot.start_time and stage.end_time < slot.end_time :
-        #           e_time = stage.end_time
-        #           print("change end")
-            
-        #   self.objects.create(date=date, area_code=area, start_time=s_time, end_time=e_time)
-
-    def populateAll(self):
-        min_date = self.getLatestDate(self)
-        #Assume that no new dates will be earlier than latest current date
-        if not min_date:
-            min_date = CapeTownPastStages.getEarliestDate(CapeTownPastStages)
-     
-        max_date = CapeTownPastStages.getLatestDate(CapeTownPastStages)
-        n_days = int( (max_date-min_date).days )
-        max_area = 16+1
-        
-        for d in range(n_days):
-            for a in range(1,max_area):
-                self.populateSlotsForDateArea(self,min_date+datetime.timedelta(d),a)
-            
-           
-    def __str__(self):
-        
-        return "For date: " + str(self.date) + " and area code: " + str(self.area_code) + " Load-shedding slot "+self.start_time.strftime('%H:%M')+"-"+self.end_time.strftime('%H:%M')
-    
-#######################################################################################################################################
 # Table of Day of month with all its loadshedding slots given by start_time and end_time.
 # Each respective stage column contains an area code for each slot and is read as:
 #               if the load-shedding stage is 4 then all area codes in the columns stage1 -> stage4 will recieve loadshedding for that slot
@@ -329,6 +243,81 @@ class CapeTownPastStages(models.Model):
 
     def __str__(self):
         return str(self.date.strftime('%d-%m-%Y'))+" ["+self.start_time.strftime('%H:%M')+"-"+self.end_time.strftime('%H:%M')+"] = stage " + str(self.stage)    
+
+#######################################################################################################################################
+#Table of time slots/intervals for which load-shedding occured given the Cape Town area code and date 
+
+class CapeTownPastSlots(models.Model):
+    past_slot_id = models.AutoField(primary_key=True)
+    date = models.DateField()
+    area_code = models.SmallIntegerField()
+    start_time = models.TimeField()
+    end_time = models.TimeField()
+
+    def populateSlotsForDateArea(self,date,area):
+        slots = CapeTownSlots.objects.none()
+        day_stages = CapeTownPastStages.filterDateTimes(CapeTownPastStages ,date,datetime.time(0,0),datetime.time(23,59))
+
+        for obj in day_stages:
+            temp_obj = CapeTownSlots.filterbyStageTimes(CapeTownSlots, date.day,area,obj.stage,obj.start_time,obj.end_time)
+            slots = slots | temp_obj
+
+        for slot in slots:
+            s_time = slot.start_time
+            e_time = slot.end_time
+            flag = False
+
+            for i in range(len(day_stages)):
+
+                #Currently Assume that only the start or end time change as interval length 2 hours can only have one hour different
+                #in the centre so it must either be start or end.
+                if i < len(day_stages)-1:
+                    if day_stages[i].stage < day_stages[i+1].stage:
+                        if day_stages[i].end_time > slot.start_time and day_stages[i].end_time < slot.end_time and flag==False :
+                            if(CapeTownSlots.areaIsMutuallyExclusive(CapeTownSlots,date.day,s_time,e_time,day_stages[i].stage,day_stages[i+1].stage,area)):
+                                s_time = day_stages[i].end_time
+                                flag=True
+
+                    elif day_stages[i].stage > day_stages[i+1].stage:
+                        if day_stages[i].start_time > slot.start_time and day_stages[i].start_time < slot.end_time and flag==False:
+                            if(CapeTownSlots.areaIsMutuallyExclusive(CapeTownSlots,date.day,s_time,e_time,day_stages[i].stage,day_stages[i+1].stage,area)):
+                                e_time = day_stages[i].start_time
+                                flag=True
+
+                else:
+                    if day_stages[i].start_time > slot.start_time and day_stages[i].start_time < slot.end_time and flag==False:
+                        if(CapeTownSlots.areaIsMutuallyExclusive(CapeTownSlots,date.day,s_time,e_time,day_stages[i-1].stage,day_stages[i].stage,area)):
+                            e_time = day_stages[i].start_time
+                            flag=True
+                    elif day_stages[i].end_time > slot.start_time and day_stages[i].end_time < slot.end_time and flag==False:
+                        if(CapeTownSlots.areaIsMutuallyExclusive(CapeTownSlots,date.day,s_time,e_time,day_stages[i-1].stage,day_stages[i].stage,area)):
+                            e_time = day_stages[i].start_time
+                            flag=True
+
+            self.objects.create(date=date, area_code=area, start_time=s_time, end_time=e_time)
+
+
+    def populateAll(self):
+
+        #Assume that no new dates will be earlier than latest current date
+        try:
+            min_date = self.objects.latest('date').date 
+        except:
+            min_date = CapeTownPastStages.getEarliestDate(CapeTownPastStages) - datetime.timedelta(1)
+     
+        max_date = CapeTownPastStages.getLatestDate(CapeTownPastStages)
+        n_days = int( (max_date-min_date).days )
+        max_area = 16
+        
+        for d in range(1,n_days+1):
+            for a in range(1,max_area+1):
+                self.populateSlotsForDateArea(self,min_date+datetime.timedelta(d),a)
+            
+           
+    def __str__(self):
+        
+        return "For date: " + str(self.date) + " and area code: " + str(self.area_code) + " Load-shedding slot "+self.start_time.strftime('%H:%M')+"-"+self.end_time.strftime('%H:%M')
+    
 
 #######################################################################################################################################
 #User Profile Model
