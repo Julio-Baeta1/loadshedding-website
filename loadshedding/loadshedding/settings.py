@@ -37,13 +37,13 @@ ALLOWED_HOSTS = []
 
 INSTALLED_APPS = [
     'loadshedding_calc',
-    #"loadshedding_calc.apps.Loadshedding_calcConfig",
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'rest_framework',
 ]
 
 MIDDLEWARE = [

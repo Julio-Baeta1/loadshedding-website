@@ -10,8 +10,14 @@ from django.utils import timezone
 from django.template import loader
 from django.db import transaction
 
-from .models import CapeTownSlots, CapeTownPastStages, CapeTownAreas, Profile, oneDaySlotsBetweenTimes
+from .models import User, CapeTownSlots, CapeTownPastStages, CapeTownAreas, Profile, oneDaySlotsBetweenTimes
 from .forms import DaySlotsForm, DaySlotsFormLoggedIn, UserForm, ProfileForm
+from .serializers import CapeTownPastStagesSerializer, AreaSerializer
+
+from rest_framework import generics 
+from rest_framework.response import Response 
+from rest_framework.reverse import reverse 
+from rest_framework import renderers, viewsets
 
 def home(request):
     """View function for home page of site."""
@@ -186,7 +192,37 @@ def edit_profile(request):
 
     return render(request, 'loadshedding_calc/edit_profile.html', context)
 
+##############################################################################################################################
+###############################################################################################################################
+#API
 
+class CTPastStagesViewSet(viewsets.ReadOnlyModelViewSet): #ReadOnlyModelViewSet class automatically provide the default 'read-only'operations
+    #This viewset automatically provides `list` and `retrieve` actions.
+    #Note only needs one class compared to the two earlier
+    queryset = CapeTownPastStages.objects.all()
+    serializer_class = CapeTownPastStagesSerializer
+
+class ApiRoot(generics.GenericAPIView): 
+    name = 'api-root'
+    def get(self, request, *args, **kwargs): 
+        return Response({ 
+            'Cape Town past load-shedding stages': reverse('CT-past-stages-list', request=request),
+            'Cape Town areas': reverse('area-list', request=request), 
+            })  
+    
+class AreaViewSet(viewsets.ReadOnlyModelViewSet): 
+    queryset = CapeTownAreas.objects.all()
+    serializer_class = AreaSerializer
+"""    
+class APICTPastStagesList(generics.ListAPIView): 
+    queryset = CapeTownPastStages.objects.all() 
+    serializer_class = CapeTownPastStagesSerializer 
+    name = 'CT-past-stages-list'
+  
+class APICTPastStagesDetail(generics.RetrieveAPIView): 
+    queryset = CapeTownPastStages.objects.all() 
+    serializer_class = CapeTownPastStagesSerializer
+    name = 'CT-past-stages-detail'"""
 
 
     
