@@ -13,6 +13,7 @@ from django.db import transaction
 from .models import User, CapeTownSlots, CapeTownPastStages, CapeTownAreas, Profile, oneDaySlotsBetweenTimes
 from .forms import DaySlotsForm, DaySlotsFormLoggedIn, UserForm, ProfileForm
 from .serializers import CapeTownPastStagesSerializer, AreaSerializer
+from .filters import CTPastStagesDateFilterSet
 
 from rest_framework import generics 
 from rest_framework.response import Response 
@@ -196,11 +197,11 @@ def edit_profile(request):
 ###############################################################################################################################
 #API
 
-class CTPastStagesViewSet(viewsets.ReadOnlyModelViewSet): #ReadOnlyModelViewSet class automatically provide the default 'read-only'operations
-    #This viewset automatically provides `list` and `retrieve` actions.
-    #Note only needs one class compared to the two earlier
+class CTPastStagesViewSet(viewsets.ReadOnlyModelViewSet): 
     queryset = CapeTownPastStages.objects.all()
     serializer_class = CapeTownPastStagesSerializer
+    filterset_class = CTPastStagesDateFilterSet
+    #Example /loadshedding_calc/api/CT-past-stages/?stage=&min_date=2023-04-13&max_date=2023-04-17
 
 class ApiRoot(generics.GenericAPIView): 
     name = 'api-root'
@@ -213,16 +214,7 @@ class ApiRoot(generics.GenericAPIView):
 class AreaViewSet(viewsets.ReadOnlyModelViewSet): 
     queryset = CapeTownAreas.objects.all()
     serializer_class = AreaSerializer
-"""    
-class APICTPastStagesList(generics.ListAPIView): 
-    queryset = CapeTownPastStages.objects.all() 
-    serializer_class = CapeTownPastStagesSerializer 
-    name = 'CT-past-stages-list'
-  
-class APICTPastStagesDetail(generics.RetrieveAPIView): 
-    queryset = CapeTownPastStages.objects.all() 
-    serializer_class = CapeTownPastStagesSerializer
-    name = 'CT-past-stages-detail'"""
+
 
 
     
